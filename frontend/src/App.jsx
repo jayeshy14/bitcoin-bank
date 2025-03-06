@@ -16,7 +16,6 @@ import PrivateRoute from './components/auth/PrivateRoute';
 
 function App() {
   return (
-    <AuthProvider>
       <Router>
         <div className="min-h-screen bg-gray-50 flex flex-col">
           <Navbar />
@@ -60,7 +59,6 @@ function App() {
           <Footer />
         </div>
       </Router>
-    </AuthProvider>
   );
 }
 

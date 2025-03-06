@@ -3,11 +3,8 @@ import User from '../models/User.js';
 
 export const protect = async (req, res, next) => {
   try {
-    let token;
     console.log('Authorization Header:', req.headers.authorization);
-    if (req.headers.authorization?.startsWith('Bearer')) {
-      token = req.headers.authorization.split(' ')[1];
-    }
+    const token = req.headers.authorization?.split(' ')[1];
 
     if (!token) {
       console.log('No token found');
