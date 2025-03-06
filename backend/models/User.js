@@ -16,8 +16,8 @@ const userSchema = new mongoose.Schema({
   },
   phoneNumber: {
     type: String,
+    unique: true,
     required: true,
-    unique: true
   },
   firstName: {
     type: String,
@@ -31,6 +31,12 @@ const userSchema = new mongoose.Schema({
     type: String,
     sparse: true
   },
+  roles: {
+    type: [String],
+    enum: ['borrower', 'investor', 'admin'],
+    required: true,
+    default: ['borrower']
+  }
 }, {
   timestamps: true
 });

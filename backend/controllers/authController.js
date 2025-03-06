@@ -10,7 +10,7 @@ const generateToken = (id) => {
 
 export const register = async (req, res) => {
   try {
-    const { email, password, firstName, lastName, roles } = req.body;
+    const { email, password, firstName, lastName, roles, phoneNumber } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
@@ -33,7 +33,8 @@ export const register = async (req, res) => {
       password,
       firstName,
       lastName,
-      roles: userRoles
+      roles: userRoles,
+      phoneNumber
     });
 
     await user.save();
@@ -54,7 +55,8 @@ export const register = async (req, res) => {
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
-      roles: user.roles
+      roles: user.roles,
+      phoneNumber: user.phoneNumber
     };
 
     res.status(201).json({
@@ -108,5 +110,19 @@ export const login = async (req, res) => {
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ error: 'Error logging in' });
+  }
+};
+
+export const getMe = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id).select('-password'); // Exclude password field
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    res.status(200).json(user);
+  } catch (error) {
+    console.error('Error fetching user data:', error);
+    res.status(500).json({ error: 'Error fetching user data' });
   }
 };
