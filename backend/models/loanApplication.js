@@ -30,7 +30,6 @@ const loanApplicationSchema = new mongoose.Schema({
   //purpose of loan
   purpose: {
     type: String,
-    required: true
   },
   //collateral for loan
   collateral: {
