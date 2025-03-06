@@ -19,7 +19,9 @@ export const AuthProvider = ({ children }) => {
 
   const checkAuth = async () => {
     try {
+      console.log(1);
       const response = await axios.get('http://localhost:3000/api/auth/me');
+      console.log(response.data)
       setUser(response.data);
     } catch (error) {
       console.error('Error fetching user data:', error);
@@ -32,6 +34,28 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
     }
   };
+
+  const register = async (formData) => {
+    try {
+      console.log('Sending registration data:', formData);
+      const response = await axios.post('http://localhost:3000/api/auth/register', formData);
+      console.log('Registration response:', response.data);
+  
+      const { token, user } = response.data;
+      localStorage.setItem('token', token);
+      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+      setUser(user);
+  
+      return { success: true };
+    } catch (error) {
+      console.error('Registration error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || 'An error occurred during registration'
+      };
+    }
+  };
+  
 
   const login = async (email, password) => {
     try {
@@ -59,7 +83,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, register }}>
       {!loading && children}
     </AuthContext.Provider>
   );
