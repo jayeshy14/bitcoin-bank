@@ -16,6 +16,7 @@ export const registerAPI = async (formData) => {
     try {
         console.log('Sending registration data:', formData);
         const response = await axios.post(`${API}register`, formData);
+        console.log("from registerApi", response)
         return response.data;
     } catch (error) {
         console.error("Registration error:", error);

@@ -18,7 +18,8 @@ export const protect = async (req, res, next) => {
     console.log('Decoded Token:', decoded);
 
     // Get user from token
-    const user = await User.findById(decoded.id).select('-password');
+    const user = await User.findById(decoded.id || decoded.userId).select('-password');
+    console.log("user", user);
     if (!user) {
       console.log('User not found');
       return res.status(401).json({
