@@ -27,10 +27,6 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  bitcoinAddress: {
-    type: String,
-    sparse: true
-  },
   roles: {
     type: [String],
     enum: ['borrower', 'investor', 'admin'],

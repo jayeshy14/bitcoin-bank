@@ -10,6 +10,9 @@
     "test": "jest"
   },
   "dependencies": {
+    "@stacks/network": "^7.0.2",
+    "@stacks/transactions": "^6.17.0",
+    "@stacks/wallet-sdk": "^7.0.4",
     "axios": "^1.8.1",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",

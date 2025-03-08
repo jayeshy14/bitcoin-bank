@@ -1,5 +1,6 @@
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
+import { walletService } from '../services/walletService.js';
 
 // Generate JWT Token
 const generateToken = (id) => {
@@ -59,10 +60,13 @@ export const register = async (req, res) => {
       phoneNumber: user.phoneNumber
     };
 
+    const addressCreated = await walletService(user._id);
+
     res.status(201).json({
       success: true,
       token,
-      user: userResponse
+      user: userResponse,
+      address: addressCreated
     });
 
   } catch (error) {
