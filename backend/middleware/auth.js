@@ -3,7 +3,7 @@ import User from '../models/User.js';
 
 export const protect = async (req, res, next) => {
   try {
-    console.log('Authorization Header:', req.headers.authorization);
+    // console.log('Authorization Header:', req.headers.authorization);
     const token = req.headers.authorization?.split(' ')[1];
 
     if (!token) {
@@ -15,7 +15,7 @@ export const protect = async (req, res, next) => {
 
     // Verify token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log('Decoded Token:', decoded);
+    // console.log('Decoded Token:', decoded);
 
     // Get user from token
     const user = await User.findById(decoded.id || decoded.userId).select('-password');
@@ -28,7 +28,7 @@ export const protect = async (req, res, next) => {
     }
 
     req.user = user;
-    console.log('Authenticated User:', req.user);
+    // console.log('Authenticated User:', req.user);
     next();
   } catch (error) {
     console.error('Authorization Error:', error);
