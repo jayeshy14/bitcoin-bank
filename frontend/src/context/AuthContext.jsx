@@ -1,6 +1,7 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import axios from 'axios';
-import { checkAuthAPI, loginAPI, registerAPI } from "../apis/authApis"
+import { checkAuthAPI, loginAPI, registerAPI } from "../apis/authApis";
+
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
@@ -11,13 +12,13 @@ export const AuthProvider = ({ children }) => {
         const token = localStorage.getItem('token');
         if (token) {
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-            checkAuth();
+            checkAuth(token); // Pass the token to check if it's valid
         } else {
             setLoading(false);
         }
     }, []);
 
-    const checkAuth = async () => {
+    const checkAuth = async (token) => {
         try {
             const userData = await checkAuthAPI();
             setUser(userData);

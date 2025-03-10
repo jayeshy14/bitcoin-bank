@@ -1,15 +1,41 @@
 import axios from 'axios';
+import City from '../models/City.js';
 
-const VALUATION_API_URL = 'https://api.valuationprovider.com/'; // Replace with actual API URL
-
-export const getCollateralValue = async (collateralType, amount) => {
+const getPropertyValue = async (cityName, area) => {
   try {
-    const response = await axios.get(`${VALUATION_API_URL}/value`, {
-      params: { type: collateralType, amount }
-    });
-    return response.data.value;
+    const city = City.findOne({Name: cityName});
+    if(!city){
+      throw new Error("City not found!");
+    }
+    return city.rate * area;
   } catch (error) {
-    console.error('Error fetching collateral value:', error);
-    throw new Error('Could not fetch collateral value');
+    console.error(error);
   }
 }; 
+
+const getGoldValue = async(amount) => {
+  try{
+    const goldRate = await getLatestGoldPrice();
+    return goldRate * amount;
+  }catch(error){
+    console.error(error)
+  }
+}
+
+const getLatestGoldPrice = async() => {
+  try {
+    const response = await axios.get("https://api.metalpriceapi.com/v1/latest", {
+      params: {
+        api_key: "575da44cc3f7aec1ff45febf88a3cd98",
+        base: "USD",
+        currencies: "XAU"
+      }
+    });
+    const data = response.data;
+    return data.rates.USDXAU;
+  } catch (error) {
+    console.error(error);
+  }
+}
+
+export {getGoldValue, getPropertyValue}

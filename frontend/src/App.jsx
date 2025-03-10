@@ -13,6 +13,8 @@ import MyInvestments from './pages/investor/MyInvestments';
 import Marketplace from './pages/marketplace/Marketplace';
 import { AuthProvider } from './context/AuthContext';
 import PrivateRoute from './components/auth/PrivateRoute';
+import Collateral from '../../backend/models/Collateral';
+import ListCollateral from './pages/loans/ListCollateral';
 
 function App() {
   return (
@@ -54,6 +56,11 @@ function App() {
                   <Marketplace />
                 </PrivateRoute>
               } />
+              <Route path='/collateral' element={
+                <PrivateRoute>
+                <ListCollateral/>
+                </PrivateRoute>
+              }/>
             </Routes>
           </main>
           <Footer />
