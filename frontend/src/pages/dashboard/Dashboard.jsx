@@ -118,9 +118,9 @@ const Dashboard = () => {
     <div className="space-y-12">
       <h1 className="text-3xl font-bold">Welcome, {user.firstName}!</h1>
       
-      {user.roles.includes('borrower') && <BorrowerDashboard />}
+      {<BorrowerDashboard />}
       
-      {user.roles.includes('investor') && <InvestorDashboard />}
+      {<InvestorDashboard />}
     </div>
   );
 };

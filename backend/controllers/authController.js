@@ -11,21 +11,12 @@ const generateToken = (id) => {
 
 export const register = async (req, res) => {
   try {
-    const { email, password, firstName, lastName, roles, phoneNumber } = req.body;
+    const { email, password, firstName, lastName, phoneNumber } = req.body;
 
     // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ error: 'User already exists' });
-    }
-
-    // Validate roles
-    const validRoles = ['borrower', 'investor', 'admin'];
-    const userRoles = Array.isArray(roles) ? roles : [roles];
-    
-    // Ensure at least one valid role is selected
-    if (!userRoles.length || !userRoles.every(role => validRoles.includes(role))) {
-      return res.status(400).json({ error: 'Invalid role selection' });
     }
 
     // Create new user
@@ -34,7 +25,6 @@ export const register = async (req, res) => {
       password,
       firstName,
       lastName,
-      roles: userRoles,
       phoneNumber
     });
 
@@ -44,7 +34,6 @@ export const register = async (req, res) => {
     const token = jwt.sign(
       { 
         userId: user._id,
-        roles: user.roles 
       },
       process.env.JWT_SECRET,
       { expiresIn: process.env.JWT_EXPIRE }
@@ -56,7 +45,6 @@ export const register = async (req, res) => {
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
-      roles: user.roles,
       phoneNumber: user.phoneNumber
     };
 
@@ -103,7 +91,6 @@ export const login = async (req, res) => {
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
-      roles: user.roles
     };
 
     res.json({

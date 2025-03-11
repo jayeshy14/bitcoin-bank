@@ -3,17 +3,17 @@ import Collateral from '../models/Collateral.js';
 
 export const createCollateral = async (req, res) => {
   try {
-    const { type, goldAmount, city, area, areaUnit } = req.body;
+    const { type, goldAmount, cityName, area } = req.body;
 
     console.log(req.body);
 
     let currentValue;
 
     if (type === 'property') {
-      if (!city || !area) {
+      if (!cityName || !area) {
         return res.status(400).json({ error: 'City and area are required for property valuation' });
       }
-      currentValue = await getPropertyValue(city, area);
+      currentValue = await getPropertyValue(cityName, area);
     } else if (type === 'gold') {
       if (!goldAmount) {
         return res.status(400).json({ error: 'Gold amount is required for gold valuation' });
@@ -23,21 +23,13 @@ export const createCollateral = async (req, res) => {
       return res.status(400).json({ error: 'Invalid collateral type' });
     }
 
-    // Prepare collateral data
     const collateralData = {
       owner: req.user.id,
       type,
       value: currentValue,
-      status: 'pending', // Default status
+      status: 'unlocked',
     };
-
-    // Handle property documents if provided
-    if (req.file) {
-      collateralData.documents = [{ 
-        filename: req.file.originalname, 
-        uploadDate: new Date() 
-      }];
-    }
+    console.log(collateralData);
 
     const collateral = await Collateral.create(collateralData);
 
@@ -53,8 +45,25 @@ export const createCollateral = async (req, res) => {
   }
 };
 
+export const removeCollateral = async(req, res) => {
+  try {
+    const {id} = req.params;
+    const collateral = await Collateral.findById(id);
 
+    if(!collateral){
+      return res.status(404).json({error: "Collateral not found!"});
+    }
+    if(collateral.owner.toString() !== req.user.id){
+      return res.status(403).json({error: "You are not a owner of this Collateral!"})
+    }
 
+    await collateral.findByIdAndDelete(id);
+
+    return res.status(200).json({message: "Collateral removed successfully!"});
+  } catch (error) {
+    return res.status(500).json({error: "Error removing collateral", message: error.message})
+  }
+}
 
 export const getMyCollaterals = async (req, res) => {
   try {
@@ -66,7 +75,7 @@ export const getMyCollaterals = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       error: 'Error fetching collaterals',
-      message: error.message
+      message: error.message,
     });
   }
 };
@@ -78,127 +87,19 @@ export const getCollateralDetails = async (req, res) => {
       .populate('loanAssociation');
 
     if (!collateral) {
-      return res.status(404).json({
-        error: 'Collateral not found'
-      });
+      return res.status(404).json({ error: 'Collateral not found' });
     }
 
-    // Check authorization
     if (collateral.owner._id.toString() !== req.user.id && req.user.role !== 'admin') {
-      return res.status(403).json({
-        error: 'Not authorized to view this collateral'
-      });
+      return res.status(403).json({ error: 'Not authorized to view this collateral' });
     }
 
     res.json(collateral);
   } catch (error) {
     res.status(500).json({
       error: 'Error fetching collateral details',
-      message: error.message
+      message: error.message,
     });
   }
 };
 
-export const updateCollateral = async (req, res) => {
-  try {
-    const collateral = await Collateral.findById(req.params.id);
-
-    if (!collateral) {
-      return res.status(404).json({
-        error: 'Collateral not found'
-      });
-    }
-
-    // Check ownership
-    if (collateral.owner.toString() !== req.user.id) {
-      return res.status(403).json({
-        error: 'Not authorized to update this collateral'
-      });
-    }
-
-    // Check if collateral can be updated
-    if (collateral.status !== 'pending' && collateral.status !== 'rejected') {
-      return res.status(400).json({
-        error: 'Collateral cannot be updated in its current status'
-      });
-    }
-
-    const {
-      description,
-      value,
-      location,
-      documents
-    } = req.body;
-
-    // Update fields
-    if (description) collateral.description = description;
-    if (value) {
-      collateral.value = {
-        ...collateral.value,
-        ...value,
-        lastValuationDate: new Date()
-      };
-    }
-    if (location) collateral.location = location;
-    if (documents) {
-      collateral.documents = [
-        ...collateral.documents,
-        ...documents.map(doc => ({
-          ...doc,
-          uploadDate: new Date()
-        }))
-      ];
-    }
-
-    await collateral.save();
-
-    res.json({
-      collateral,
-      message: 'Collateral updated successfully'
-    });
-  } catch (error) {
-    res.status(500).json({
-      error: 'Error updating collateral',
-      message: error.message
-    });
-  }
-};
-
-export const verifyCollateral = async (req, res) => {
-  try {
-    const collateral = await Collateral.findById(req.params.id);
-
-    if (!collateral) {
-      return res.status(404).json({
-        error: 'Collateral not found'
-      });
-    }
-
-    if (collateral.status !== 'pending') {
-      return res.status(400).json({
-        error: 'Collateral is not in pending status'
-      });
-    }
-
-    const { verificationStatus, notes } = req.body;
-
-    collateral.status = verificationStatus === 'approved' ? 'verified' : 'rejected';
-    collateral.verificationDetails = {
-      verifiedBy: req.user.id,
-      verificationDate: new Date(),
-      notes
-    };
-
-    await collateral.save();
-
-    res.json({
-      collateral,
-      message: `Collateral ${verificationStatus} successfully`
-    });
-  } catch (error) {
-    res.status(500).json({
-      error: 'Error verifying collateral',
-      message: error.message
-    });
-  }
-}; 

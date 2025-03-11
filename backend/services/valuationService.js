@@ -3,10 +3,13 @@ import City from '../models/City.js';
 
 const getPropertyValue = async (cityName, area) => {
   try {
-    const city = City.findOne({Name: cityName});
+    console.log("The city you're finding is: ", cityName);
+    const city = await City.findOne({Name: cityName});
+    console.log(city.Name);
     if(!city){
       throw new Error("City not found!");
     }
+    console.log(city.rate*area);
     return city.rate * area;
   } catch (error) {
     console.error(error);
