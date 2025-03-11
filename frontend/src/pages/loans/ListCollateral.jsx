@@ -7,11 +7,8 @@ const ListCollateral = () => {
   const [formData, setFormData] = useState({
     type: 'gold',
     goldAmount: '',
-    city: '',
+    cityName: '',
     area: '',
-    areaUnit: 'sq_ft',
-    propertyDocument: null,
-    status: 'pending'
   });
 
   useEffect(() => {
@@ -32,37 +29,23 @@ const ListCollateral = () => {
     });
   };
 
-  const handleFileChange = (e) => {
-    setFormData({
-      ...formData,
-      propertyDocument: e.target.files[0]
-    });
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const formDataToSend = new FormData();
-
-      if (formData.type === 'gold') {
-        formDataToSend.append('type', formData.type);
-        formDataToSend.append('goldAmount', formData.goldAmount);
-      } else if (formData.type === 'property') {
-        formDataToSend.append('type', formData.type);
-        formDataToSend.append('cityName', formData.city);
-        formDataToSend.append('area', formData.area);
-        formDataToSend.append('areaUnit', formData.areaUnit);
-        if (formData.propertyDocument) {
-          formDataToSend.append('propertyDocument', formData.propertyDocument);
-        }
-      }
-      
+      const formDataToSend = {
+        type: formData.type,
+        goldAmount: formData.type === 'gold' ? formData.goldAmount : undefined,
+        cityName: formData.type === 'property' ? formData.cityName : undefined,
+        area: formData.type === 'property' ? formData.area : undefined,
+      };
+  
       const data = await createCollateralApi(formDataToSend);
       console.log('Collateral listed:', data);
     } catch (error) {
       console.error('Error listing collateral:', error);
     }
   };
+  
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -100,8 +83,8 @@ const ListCollateral = () => {
             <div>
               <label className="block text-gray-700 mb-2">City</label>
               <select
-                name="city"
-                value={formData.city}
+                name="cityName"
+                value={formData.cityName}
                 onChange={handleChange}
                 className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-blue-500"
                 required
@@ -121,27 +104,6 @@ const ListCollateral = () => {
                 name="area"
                 value={formData.area}
                 onChange={handleChange}
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-blue-500"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-gray-700 mb-2">Area Unit</label>
-              <select
-                name="areaUnit"
-                value={formData.areaUnit}
-                onChange={handleChange}
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-blue-500"
-              >
-                <option value="sq_ft">Square Feet</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-gray-700 mb-2">Upload Property Document</label>
-              <input
-                type="file"
-                name="propertyDocument"
-                onChange={handleFileChange}
                 className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-blue-500"
                 required
               />

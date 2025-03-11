@@ -27,12 +27,6 @@ const userSchema = new mongoose.Schema({
     type: String,
     required: true
   },
-  roles: {
-    type: [String],
-    enum: ['borrower', 'investor', 'admin'],
-    required: true,
-    default: ['borrower']
-  }
 }, {
   timestamps: true
 });

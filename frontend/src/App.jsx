@@ -13,59 +13,79 @@ import MyInvestments from './pages/investor/MyInvestments';
 import Marketplace from './pages/marketplace/Marketplace';
 import { AuthProvider } from './context/AuthContext';
 import PrivateRoute from './components/auth/PrivateRoute';
-import Collateral from '../../backend/models/Collateral';
 import ListCollateral from './pages/loans/ListCollateral';
 
 function App() {
   return (
-      <Router>
-        <div className="min-h-screen bg-gray-50 flex flex-col">
-          <Navbar />
-          <main className="flex-grow container mx-auto px-4 py-8">
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/dashboard" element={
+    <Router>
+      <div className="min-h-screen bg-gray-900 text-gray-200 flex flex-col">
+        <Navbar />
+        <main className="flex flex-col min-h-screen py-10 min-w-screen items-center justify-center">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route
+              path="/dashboard"
+              element={
                 <PrivateRoute>
                   <Dashboard />
                 </PrivateRoute>
-              } />
-              <Route path="/loans/apply" element={
+              }
+            />
+            <Route
+              path="/loans/apply"
+              element={
                 <PrivateRoute>
                   <LoanApplication />
                 </PrivateRoute>
-              } />
-              <Route path="/loans/my-loans" element={
+              }
+            />
+            <Route
+              path="/loans/my-loans"
+              element={
                 <PrivateRoute>
                   <MyLoans />
                 </PrivateRoute>
-              } />
-              <Route path="/investor/opportunities" element={
+              }
+            />
+            <Route
+              path="/investor/opportunities"
+              element={
                 <PrivateRoute>
                   <InvestmentOpportunities />
                 </PrivateRoute>
-              } />
-              <Route path="/investor/my-investments" element={
+              }
+            />
+            <Route
+              path="/investor/my-investments"
+              element={
                 <PrivateRoute>
                   <MyInvestments />
                 </PrivateRoute>
-              } />
-              <Route path="/marketplace" element={
+              }
+            />
+            <Route
+              path="/marketplace"
+              element={
                 <PrivateRoute>
                   <Marketplace />
                 </PrivateRoute>
-              } />
-              <Route path='/collateral' element={
+              }
+            />
+            <Route
+              path="/collateral"
+              element={
                 <PrivateRoute>
-                <ListCollateral/>
+                  <ListCollateral />
                 </PrivateRoute>
-              }/>
-            </Routes>
-          </main>
-          <Footer />
-        </div>
-      </Router>
+              }
+            />
+          </Routes>
+        </main>
+        <Footer />
+      </div>
+    </Router>
   );
 }
 

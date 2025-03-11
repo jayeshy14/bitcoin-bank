@@ -19,8 +19,8 @@ const collateralSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['pending', 'verified', 'locked', 'liquidated', 'released'],
-    default: 'pending'
+    enum: ['locked', 'unlocked'],
+    default: 'unlocked'
   },
   loanAssociation: {
     type: mongoose.Schema.Types.ObjectId,
