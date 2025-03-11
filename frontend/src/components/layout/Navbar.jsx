@@ -5,6 +5,10 @@ import { useAuth } from '../../context/AuthContext';
 const Navbar = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const path = location.pathname.replace("/", "");
+
+
+  const navItem = ["Borrow", "Lend", "dashboard", "profile"]
 
   const handleLogout = () => {
     logout();
@@ -12,19 +16,30 @@ const Navbar = () => {
   };
 
   return (
-    <nav className="bg-blue-700 text-white shadow-lg">
+    <nav className="bg-gray-800  shadow-lg">
       <div className="container mx-auto px-4">
-        <div className="flex justify-between items-center h-16">
-          <Link to="/" className="text-xl font-bold hover:text-blue-300 transition duration-200">
+        <div className="flex justify-between items-center h-16 uppercase">
+          <Link to="/" className="text-xl text-white font-bold transition duration-200">
             Bitcoin Loan Bank
           </Link>
 
-          <div className="flex items-center space-x-4">
+          <div className='flex flex-row gap-10 leading-0 items-center justify-center'>
+            {navItem.map((item, index) => (
+              <div>
+                {item !== "profile" ?
+                  <Link to={`/${item}`} key={index} className={path === item ? "bg-blue-200 p-2 rounded" : "" }>{item}</Link>
+                  : <button className="flex items-center bg-blue-600 hover:bg-blue-500 text-white px-4 py-5 rounded transition duration-200">
+                    {user.firstName} <span className="ml-2">▼</span>
+                  </button>
+                }
+              </div>
+            ))}
+          </div>
+
+          {/* <div className="flex items-center space-x-4">
             {user ? (
               <div className="relative">
-                <button className="flex items-center bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded transition duration-200">
-                  {user.firstName} <span className="ml-2">▼</span>
-                </button>
+                
                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 hidden group-hover:block">
                   <Link to="/dashboard" className="block px-4 py-2 text-gray-800 hover:bg-gray-200">Dashboard</Link>
                   {user.roles.includes('borrower') && (
@@ -53,7 +68,7 @@ const Navbar = () => {
                 <Link to="/register" className="bg-white text-blue-600 hover:bg-blue-50 px-4 py-2 rounded transition duration-200">Register</Link>
               </>
             )}
-          </div>
+          </div> */}
         </div>
       </div>
     </nav>
