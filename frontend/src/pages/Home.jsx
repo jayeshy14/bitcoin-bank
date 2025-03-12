@@ -1,10 +1,11 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { motion } from 'framer-motion';
 
 const Home = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   return (
     <div className="space-y-20 bg-gray-900 text-gray-100">
@@ -20,13 +21,12 @@ const Home = () => {
             Get Bitcoin Loans with Gold or Property
           </motion.h1>
           <motion.p 
-            className="text-xl mb-8 max-w-2xl mx-auto"
+            className="text-xl mb-8 max-w-2xl mx-auto font-thin"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3, duration: 0.5 }}
           >
-            Unlock liquidity by securing a Bitcoin loan with your gold or property as collateral.  
-            No credit checks, low interest rates, and secure transactions.
+            Unlock liquidity by securing a Bitcoin loan with your gold or property as collateral. No credit checks, low interest rates, and secure transactions.
           </motion.p>
           {!user && (
             <motion.div 

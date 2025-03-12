@@ -18,7 +18,7 @@ import ListCollateral from './pages/loans/ListCollateral';
 function App() {
   return (
     <Router>
-      <div className="min-h-screen bg-gray-900 text-gray-200 flex flex-col">
+      <div className="min-h-screen bg-gray-900 text-gray-200 flex flex-col overflow-hidden">
         <Navbar />
         <main className="flex flex-col min-h-screen py-10 min-w-screen items-center justify-center">
           <Routes>
