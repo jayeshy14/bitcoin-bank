@@ -19,7 +19,7 @@ const HISTORICAL_CHANGES: [f64; 167] = [
 ];
 
 
-const TOKEN_DECIMALS: f64 = 100000000.0;
+const _TOKEN_DECIMALS: f64 = 100000000.0;
 
 fn simulate_monthly_price(base_price: f64, months: u32) -> Vec<f64> {
     let mut rng = ThreadRng::default();
@@ -59,20 +59,20 @@ fn calculate_emi(
     //Suppose the loan is taken for 18 months
     //Compound interest plus principle = 0.4 BTC * (1 + 0.01) ^ 18 = 0.47845899027 BTC approx 
     //So 0.4 BTC is principle amount and the rest 0.07845899027 BTC is compound interest at 1% interest rate calculated monthly
-    let compound_interest_plus_btc_fixed = btc_fixed * (1 + r) ^ loan_time_in_months;
+    let compound_interest_plus_btc_fixed = btc_fixed * (1.0 + r).powf(loan_time_in_months as f64);
 
     //btc_variable_usd_value = (0.6) * (100,000 usd) = 60,000 usd
     let btc_variable_usd_value = (1.0 - risk_factor) * ( l_principal_usd );
 
     //Compound interest plus btc variable usd value = 60,000 usd (1.01) ^ 18 = 71768.8485412 usd approx
     //So 60,000 usd is principle amount and the rest 17,768.8485412 usd is compound interest at 1% interest rate calculated monthly
-    let compound_interest_plus_btc_variable_usd_value = btc_variable_usd_value * (1 + r) ^ loan_time_in_months;
+    let compound_interest_plus_btc_variable_usd_value = btc_variable_usd_value * (1.0 + r).powf(loan_time_in_months as f64);
 
     //btc_fixed_monthly_emi = 0.47845899027 BTC / 18 months = 0.02658105501 BTC to be paid monthly as fixed BTC 
-    let btc_fixed_monthly_emi = compound_interest_plus_btc_fixed / loan_time_in_months; 
+    let btc_fixed_monthly_emi = compound_interest_plus_btc_fixed / (loan_time_in_months as f64); 
 
     //btc_variable_usd_value_monthly_emi = 71768.8485412 usd / 18 months = 3987.15825229 usd to be paid monthly as variable BTC usd value
-    let btc_variable_usd_value_monthly_emi = compound_interest_plus_btc_variable_usd_value / loan_time_in_months;
+    let btc_variable_usd_value_monthly_emi = compound_interest_plus_btc_variable_usd_value / (loan_time_in_months as f64);
 
     // This is just a conversion of btc_variable_usd_value_monthly_emi into its btc value
     let btc_variable_monthly_emi = btc_variable_usd_value_monthly_emi / current_price;
@@ -80,10 +80,10 @@ fn calculate_emi(
     //The total BTC amount which needs to be paid monthly = btc_fixed_monthly_emi + btc_variable_monthly_emi
     let total_emi_in_btc = btc_fixed_monthly_emi + btc_variable_monthly_emi;
 
-    //This is just a conversion of total_btc_emi into usd 
-    let total_emi_in_usd = total_btc_emi * current_price;
+    //This is just a conversion of total_emi_in_btc into usd 
+    let total_emi_in_usd = total_emi_in_btc * current_price;
     
-    (btc_fixed_monthly_emi, btc_variable_monthly_emi, total_emi_in_btc, total_emi_in_usd);
+    (btc_fixed_monthly_emi, btc_variable_monthly_emi, total_emi_in_btc, total_emi_in_usd)
 }
 
 fn main() {
@@ -105,18 +105,18 @@ fn main() {
     let loan_time_in_months = 18;
 
     //No need to calculate simulate price, because we'll be passing current price each month at the time of emi calculation
-    let simulate_price = simulate_monthly_price(price_at_loan_time, loan_year * 12);
+    let simulate_price = simulate_monthly_price(price_at_loan_time,  loan_time_in_months);
     println!("simulate_price: {:?}", simulate_price);
     
     let mut total_repayment_in_usd = 0.0;
-    let mut total_interest_paid = 0.0;
+    let mut _total_interest_paid = 0.0;
     let mut total_fixed_emi_sats = 0.0;
     let mut total_variable_emi_sats = 0.0;
     let mut total_repayment_btc = 0.0;
 
     for (month, current_price) in simulate_price.iter().enumerate() {
         let (btc_fixed_monthly_emi, btc_variable_monthly_emi, total_emi_in_btc, total_emi_in_usd) = calculate_emi(
-            principal_usd, 
+            principle_usd, 
             monthly_interest_rate, 
             risk_percentage, 
             price_at_loan_time, 
@@ -124,10 +124,10 @@ fn main() {
             loan_time_in_months
         );
 
-        total_repayment_usd += total_emi_in_usd;
+        total_repayment_in_usd += total_emi_in_usd;
         //1 BTC = 99959862 sats
-        total_fixed_emi_sats += btc_fixed_monthly_emi * 99959862;
-        total_variable_emi_sats += btc_variable_monthly_emi * 99959862;
+        total_fixed_emi_sats += btc_fixed_monthly_emi * 99959862.0;
+        total_variable_emi_sats += btc_variable_monthly_emi * 99959862.0;
         total_repayment_btc += total_emi_in_btc;
 
         println!(
@@ -136,13 +136,13 @@ fn main() {
             current_price,
             total_fixed_emi_sats,
             total_variable_emi_sats,
-            total_repayment_usd,
+            total_repayment_in_usd,
             total_repayment_btc,
         );
 
     }
     println!("--- Simulation Summary ---");
-    println!("Total Repayment (USD): ${:.2}", total_repayment_usd);
+    println!("Total Repayment (USD): ${:.2}", total_repayment_in_usd);
     println!("Total Repayment (BTC): {:.2}", total_repayment_btc);
     println!("Total Fixed Repayment (sats): {}", total_fixed_emi_sats);
     println!("Total Variable Repayment (sats): {}", total_variable_emi_sats);
