@@ -15,4 +15,11 @@ plan:
             path: contracts/sbtc-token.clar
             anchor-block-only: true
             clarity-version: 3
+        - contract-publish:
+            contract-name: bank
+            expected-sender: ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM
+            cost: 130410
+            path: contracts/bank.clar
+            anchor-block-only: true
+            clarity-version: 3
       epoch: "3.1"

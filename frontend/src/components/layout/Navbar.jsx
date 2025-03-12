@@ -9,27 +9,30 @@ const Navbar = () => {
   const navigate = useNavigate();
   const path = location.pathname.replace("/", "");
 
-  const navItem = ["Borrow", "Lend", "dashboard"];
+  const navItem = ["Borrow", "Lend", "dashboard", "login", "register"];
 
   return (
-    <nav className="bg-gray-900 shadow-lg border-b-2 border-blue-600">
+    <nav className="bg-gray-900 shadow-lg border-b-2 border-slate-500 ">
       <div className="container mx-auto px-4">
         <div className="flex justify-between items-center h-16 uppercase">
-          <Link to="/" className="text-2xl text-white font-bold transition duration-200 hover:text-blue-400">
+          <h1 onClick={() => navigate("/")} className="text-2xl text-white font-bold transition duration-200 hover:text-slate-300 cursor-pointer">
             Bitcoin Loan Bank
-          </Link>
+          </h1>
 
           <div className='flex flex-row gap-10 leading-0 items-center justify-center'>
-            {navItem.map((item, index) => (
-              <div key={index}>
-                <Link 
-                  to={`/${item}`} 
-                  className={`px-4 py-2 rounded-lg transition duration-300 ${path === item ? 'bg-blue-500 text-white' : 'text-gray-300 hover:bg-blue-500 hover:text-white'}`}
-                >
-                  {item}
-                </Link>
-              </div>
-            ))}
+            {navItem
+              .filter(item => !(user && (item === "login" || item === "register"))) // Filter out login and register if user exists
+              .map((item, index) => (
+                <div key={index}>
+                  <Link
+                    to={`/${item}`}
+                    className={`px-4 py-2 rounded-lg transition !text-white duration-300 ${path === item ? "bg-slate-500 " : " hover:bg-slate-500"
+                      }`}
+                  >
+                    {item}
+                  </Link>
+                </div>
+              ))}
 
             {user && (
               <Menu as="div" className="relative">
@@ -39,8 +42,8 @@ const Navbar = () => {
                 <Menu.Items className="absolute right-0 mt-2 w-48 bg-white shadow-lg rounded-lg z-10">
                   <MenuItem>
                     {({ active }) => (
-                      <Link 
-                        to="/profile" 
+                      <Link
+                        to="/profile"
                         className={`block px-4 py-2 text-sm ${active ? 'bg-blue-500 text-white' : 'text-gray-700'}`}
                       >
                         Profile
@@ -49,8 +52,8 @@ const Navbar = () => {
                   </MenuItem>
                   <MenuItem>
                     {({ active }) => (
-                      <button 
-                        onClick={logout} 
+                      <button
+                        onClick={logout}
                         className={`block w-full text-left px-4 py-2 text-sm ${active ? 'bg-red-500 text-white' : 'text-gray-700'}`}
                       >
                         Logout

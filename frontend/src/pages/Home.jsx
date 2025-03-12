@@ -1,16 +1,17 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { motion } from 'framer-motion';
 
 const Home = () => {
   const { user } = useAuth();
+  const navigate = useNavigate()
 
   return (
     <div className="space-y-20 bg-gray-900 text-gray-100">
       {/* Hero Section */}
-      <section className="text-center py-20 bg-gradient-to-r from-blue-900 to-purple-900">
-        <div className="mx-auto px-4">
+      <section className="text-center m-10 py-20 bg-gradient-to-r from-blue-900 to-purple-900 rounded">
+        <div className="mx-auto px-4 rounded-3xl">
           <motion.h1 
             className="text-6xl font-extrabold mb-6" 
             initial={{ opacity: 0, y: -50 }} 
@@ -20,13 +21,13 @@ const Home = () => {
             Bitcoin-Backed Loans Made Simple
           </motion.h1>
           <motion.p 
-            className="text-xl mb-8 max-w-2xl mx-auto"
+            className="text-xl mb-8 max-w-2xl mx-auto font-thin"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3, duration: 0.5 }}
           >
-            Get instant loans using your Bitcoin as collateral. Low interest rates, 
-            transparent terms, and no credit checks required.
+            Get instant <span className='text-amber-200 font-normal'>loan</span> using your <span className='text-amber-200 font-normal'>Bitcoin</span> as collateral. <span className='text-amber-200 font-normal'>Low interest</span> rates, 
+            transparent terms, and <span className='text-amber-200 font-normal'>no credit checks</span> required.
           </motion.p>
           {!user && (
             <motion.div 
@@ -35,18 +36,18 @@ const Home = () => {
               animate={{ opacity: 1 }}
               transition={{ delay: 0.6, duration: 0.5 }}
             >
-              <Link
-                to="/register"
-                className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 shadow-lg transform hover:scale-105 transition-transform"
+              <button
+                onClick={() => navigate("/register")}
+                className="bg-blue-600 !text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 shadow-lg transform scale-105 hover:scale-90 transition-all cursor-pointer"
               >
                 Get Started
-              </Link>
-              <Link
-                to="/login"
-                className="border-2 border-blue-600 text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-blue-600 hover:text-white shadow-lg transform hover:scale-105 transition-transform"
+              </button>
+              <button
+                onClick={() => navigate("/login")}
+                className="border-2 border-blue-600 !text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-600 hover:text-white shadow-lg transform hover:scale-85 transition-all cursor-pointer"
               >
                 Login
-              </Link>
+              </button>
             </motion.div>
           )}
         </div>
