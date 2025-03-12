@@ -30,9 +30,23 @@ const removeCollateralApi = async (id) => {
 
 const getMyCollateralsApi = async() => {
     try {
-        const response = await axios.get(`${API}/my-collaterals`)
+        const response = await axios.get(`${API}/my-collaterals`,{
+            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        });
+        return response.data;
     } catch (error) {
-        
+        console.error(error);
+    }
+}
+
+const getCollateralDetailsApi = async(id) => {
+    try {
+        const response = await axios.get(`${API}/${id}`, {
+            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        })
+        return response.data;
+    } catch (error) {
+        console.error(error);
     }
 }
 
@@ -47,4 +61,4 @@ const fetchCitiesApi = async() => {
     }
 }
 
-export { createCollateralApi, removeCollateralApi, fetchCitiesApi };
+export { createCollateralApi, removeCollateralApi, getCollateralDetailsApi, getMyCollateralsApi, fetchCitiesApi };
