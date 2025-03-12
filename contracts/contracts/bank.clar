@@ -46,12 +46,11 @@
         borrower: principal,
         loanType: uint,
         amount: uint,
-        deadline: uint,
         interestRate: uint,
         totalRepayement: uint,
         priceAtLoanTime: uint,
         riskFactor: uint,
-        timeInYear: uint
+        timeInMonth: uint
     }
 )
 
@@ -94,22 +93,20 @@
         (amount uint)              ;; amount in BTC
         (interestRate uint)
         (loanType uint)
-        (deadline uint)
         (priceAtloanTime uint)     ;; USD per BTC
         (riskFactor uint)
-        (timeInYear uint)
+        (timeInMonth uint)
     ) 
     (begin 
         (asserts! (not (is-eq borrower ZEROADDRESS)) (err BANK_ERR_ZERO-ADDRESS))
         (asserts! (not (is-eq amount u0)) (err BANK_ERR_ZERO-AMOUNT))
         (asserts! (not (is-eq priceAtloanTime u0)) (err BANK_ERR_ZERO-sBTC_PRICE))
         (asserts! (not (is-eq riskFactor u0)) (err BANK_ERR_ZERO-riskFactor))
-        (asserts! (not (is-eq timeInYear u0)) (err BANK_ERR_ZERO-time))
-        (asserts! (and (> interestRate u5) (< interestRate u15)) (err BANK_ERR_INVALID-INTEREST))
+        (asserts! (not (is-eq timeInMonth u0)) (err BANK_ERR_ZERO-time))
+        (asserts! (and (>= interestRate u1) (<= interestRate u5)) (err BANK_ERR_INVALID-INTEREST))
         (asserts! (or (is-eq loanType BANK_LOAN_TYPE-EMI)
                       (is-eq loanType BANK_LOAN_TYPE-INDEPENDENT))
                   (err BANK_ERR_INVALID-LOAN-TYPE))
-        (asserts! (not (is-eq deadline u0)) (err BANK_ERR_INVALID-DEADLINE))
         (let (
               ;; Convert the amount from BTC to USD using priceAtloanTime.
               (loan-amount (/ (* amount priceAtloanTime) TOKEN_DECIMALS))
@@ -134,12 +131,11 @@
                     borrower: borrower,
                     loanType: loanType,
                     amount: loan-amount,  ;; now stored in USD
-                    deadline: deadline,
                     interestRate: interestRate,
                     totalRepayement: u0,
                     priceAtLoanTime: priceAtloanTime,
                     riskFactor: riskFactor,
-                    timeInYear: timeInYear
+                    timeInMonth: timeInMonth
                 }
             )
             (var-set loadID (+ (var-get loadID) u1))
@@ -150,44 +146,7 @@
 
 
 
-;; ---------------------------
-;; Public function: repay
-;; ---------------------------
-;; ---------------------------
-;; Private function: Core repayment calculation (returns EMI values)
-;; ---------------------------
-(define-private (calc-repayment-core (loan_ID uint) (currentPrice uint))
-  (let ((loan-details (map-get? BANK_loan-details { loan_ID: loan_ID })))
-    (match loan-details
-      some-loan-data
-        (let (
-              (r_fp (/ (* (get interestRate some-loan-data) PRECISION) u100))             ;; r_fp = interest rate as fixed-point fraction
-              (D (/ (* (get amount some-loan-data) (+ PRECISION r_fp)) PRECISION))          ;; D = L * (1 + r)
-              (risk_fp (/ (* (get riskFactor some-loan-data) PRECISION) u100))              ;; risk factor as fixed-point fraction (e.g. 50 -> 0.5)
-              (months (* (get timeInYear some-loan-data) MONTHS))                           ;; total number of months
-              (BTC_FIXED (/ (* risk_fp D TOKEN_DECIMALS)
-                            (* PRECISION (get priceAtLoanTime some-loan-data))))           ;; BTC_FIXED in satoshis
-              (BTC_VARIABLE (/ (* (- PRECISION risk_fp) D TOKEN_DECIMALS)
-                               (* PRECISION currentPrice)))                         ;; BTC_VARIABLE in satoshis
-              (BTC_FIXED_EMI (/ BTC_FIXED months))                                   ;; Monthly fixed BTC EMI (satoshis)
-              (BTC_VARIABLE_EMI (/ BTC_VARIABLE months))                             ;; Monthly variable BTC EMI (satoshis)
-              (total_EMI_USD (/ (* (+ BTC_FIXED_EMI BTC_VARIABLE_EMI) currentPrice)
-                                TOKEN_DECIMALS))                                  ;; Monthly EMI in USD
-             )
-          (ok { BTC_FIXED_EMI: BTC_FIXED_EMI,
-                BTC_VARIABLE_EMI: BTC_VARIABLE_EMI,
-                total_EMI_USD: total_EMI_USD }))
-      (err "Loan not found")
-    )
-  )
-)
 
-;; ---------------------------
-;; Read-only function: calculate-repayment
-;; ---------------------------
-(define-read-only (calculate-repayment (loan_ID uint) (currentPrice uint))
-  (calc-repayment-core loan_ID currentPrice)
-)
 
 ;; ---------------------------
 ;; Public function: repay
@@ -282,10 +241,12 @@
     (map-get? BANK_loan-details {loan_ID: loanId})
 )
 
-;; ---------------------------
-;; Read-only function: calculate-repayment
-;; ---------------------------
+(define-read-only (calculate-repayment (loan_ID uint) (currentPrice uint))
+  (calc-repayment-core loan_ID currentPrice)
+)
 
+
+;; PRIVATE FUNCTION
 
 ;; calculate-repayemnt function: Calculates the monthly EMI repayment in sBTC for a given loan.
 ;;
@@ -294,15 +255,58 @@
 ;;   BTC_fixed = (riskFactor / 100) * (D / Po)
 ;;   BTC_variable = (1 - (riskFactor / 100)) * (D / currentPrice)
 ;;   BTC_total = BTC_fixed + BTC_variable
-;;   EMI_BTC = BTC_total / (timeInYear * 12)
+;;   EMI_BTC = BTC_total / (timeInMonth * 12)
 ;;
 ;; Note: All division here is integer division. In practice, you may need to use a fixed point arithmetic
 ;; approach to preserve precision.
 
+;; ---------------------------
+;; Private function: Core repayment calculation (returns EMI values)
+;; ---------------------------
+(define-private (calc-repayment-core (loan_ID uint) (currentPrice uint))
+  (let ((loan-details (map-get? BANK_loan-details { loan_ID: loan_ID })))
+    (match loan-details
+      some-loan-data
+        (let (
+              ;; Convert interest rate and risk factor to fixed-point fractions
+              (r_fp (/ (* (get interestRate some-loan-data) PRECISION) u100))
+              (risk_fp (/ (* (get riskFactor some-loan-data) PRECISION) u100))
+              (months (get timeInMonth some-loan-data))
 
-
-
-;; PRIVATE FUNCTIONS
+              ;; Calculate BTC_FIXED based on risk factor and loan principal
+              (BTC_FIXED (* risk_fp 
+                             (/ (get amount some-loan-data) 
+                                (get priceAtLoanTime some-loan-data))))
+              
+              ;; Calculate compound interest on BTC_FIXED
+              (BTC_FIXED_INTEREST (* BTC_FIXED 
+                                     (pow (+ u1 r_fp) months)))
+              
+              ;; BTC_VARIABLE in USD
+              (BTC_VARIABLE_USD (* (- u1 risk_fp) (get amount some-loan-data)))
+              
+              ;; Compound interest on BTC_VARIABLE in USD
+              (BTC_VARIABLE_INTEREST_USD (* BTC_VARIABLE_USD 
+                                            (pow (+ u1 r_fp) months)))
+              
+              ;; Convert BTC_VARIABLE_INTEREST_USD to BTC
+              (BTC_VARIABLE_INTEREST (/ BTC_VARIABLE_INTEREST_USD currentPrice))
+              
+              ;; Monthly EMI calculations
+              (BTC_FIXED_EMI (/ BTC_FIXED_INTEREST months))
+              (BTC_VARIABLE_EMI (/ BTC_VARIABLE_INTEREST months))
+              
+              ;; Total EMI in BTC and USD
+              (total_EMI_BTC (+ BTC_FIXED_EMI BTC_VARIABLE_EMI))
+             )
+          (ok { BTC_FIXED_EMI: BTC_FIXED_EMI,
+                BTC_VARIABLE_EMI: BTC_VARIABLE_EMI,
+                total_EMI_BTC: total_EMI_BTC,
+              }))
+      (err "Loan not found")
+    )
+  )
+)
 
 ;; Returns the total balance (on-chain + off-chain) for a given address.
 (define-private (total-balance (who principal))
@@ -314,8 +318,4 @@
   )
 )
 
-(define-read-only (risk-fixed (risk uint))
-  ;; Convert a percentage risk factor into fixed point (e.g., 50 -> 5000 for 0.50)
-  (/ (* risk PRECISION) u100)
-)
 
