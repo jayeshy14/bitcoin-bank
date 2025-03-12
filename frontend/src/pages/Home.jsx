@@ -9,7 +9,7 @@ const Home = () => {
   return (
     <div className="space-y-20 bg-gray-900 text-gray-100">
       {/* Hero Section */}
-      <section className="text-center py-20 bg-gradient-to-r from-blue-900 to-purple-900">
+      <section className="text-center py-20 bg-gradient-to-r from-purple-700 to-blue-700">
         <div className="mx-auto px-4">
           <motion.h1 
             className="text-6xl font-extrabold mb-6" 
@@ -17,7 +17,7 @@ const Home = () => {
             animate={{ opacity: 1, y: 0 }} 
             transition={{ duration: 0.5 }}
           >
-            Bitcoin-Backed Loans Made Simple
+            Get Bitcoin Loans with Gold or Property
           </motion.h1>
           <motion.p 
             className="text-xl mb-8 max-w-2xl mx-auto"
@@ -25,8 +25,8 @@ const Home = () => {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3, duration: 0.5 }}
           >
-            Get instant loans using your Bitcoin as collateral. Low interest rates, 
-            transparent terms, and no credit checks required.
+            Unlock liquidity by securing a Bitcoin loan with your gold or property as collateral.  
+            No credit checks, low interest rates, and secure transactions.
           </motion.p>
           {!user && (
             <motion.div 
@@ -37,13 +37,13 @@ const Home = () => {
             >
               <Link
                 to="/register"
-                className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 shadow-lg transform hover:scale-105 transition-transform"
+                className="bg-yellow-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-yellow-700 shadow-lg transform hover:scale-105 transition-transform"
               >
                 Get Started
               </Link>
               <Link
                 to="/login"
-                className="border-2 border-blue-600 text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-blue-600 hover:text-white shadow-lg transform hover:scale-105 transition-transform"
+                className="border-2 border-yellow-600 text-yellow-600 px-8 py-3 rounded-lg font-semibold hover:bg-yellow-600 hover:text-white shadow-lg transform hover:scale-105 transition-transform"
               >
                 Login
               </Link>
@@ -54,9 +54,9 @@ const Home = () => {
 
       {/* Features Section */}
       <section className="container mx-auto px-4">
-        <h2 className="text-3xl font-bold text-center mb-12">Why Choose Us</h2>
+        <h2 className="text-3xl font-bold text-center mb-12">Why Choose Us?</h2>
         <div className="grid md:grid-cols-3 gap-8">
-          {["Secure", "Fast", "Transparent"].map((feature, index) => (
+          {["Secure Storage", "Instant Loans", "Flexible Repayment"].map((feature, index) => (
             <motion.div 
               key={index}
               className="text-center p-6 bg-gray-800 rounded-lg shadow-lg hover:shadow-xl transition-shadow"
@@ -71,9 +71,9 @@ const Home = () => {
               </div>
               <h3 className="text-xl font-semibold mb-2">{feature}</h3>
               <p className="text-gray-400">
-                {feature === "Secure" && "Your Bitcoin collateral is stored in secure multi-signature wallets."}
-                {feature === "Fast" && "Get your loan approved and disbursed within minutes."}
-                {feature === "Transparent" && "Clear terms and conditions with no hidden fees."}
+                {feature === "Secure Storage" && "Your gold and property details are securely stored and insured."}
+                {feature === "Instant Loans" && "Get Bitcoin loans within minutes after collateral verification."}
+                {feature === "Flexible Repayment" && "Choose a repayment plan that fits your needs, with no hidden fees."}
               </p>
             </motion.div>
           ))}
@@ -85,7 +85,7 @@ const Home = () => {
         <div className="container mx-auto px-4">
           <h2 className="text-3xl font-bold text-center mb-12">How It Works</h2>
           <div className="grid md:grid-cols-4 gap-8">
-            {["Create Account", "Deposit Bitcoin", "Get Loan", "Repay & Release"].map((step, index) => (
+            {["Create Account", "Add Collateral", "Get Bitcoin Loan", "Repay & Unlock"].map((step, index) => (
               <motion.div 
                 key={index}
                 className="text-center p-6 bg-gray-700 rounded-lg shadow-md hover:shadow-lg transition-shadow"
@@ -96,10 +96,10 @@ const Home = () => {
                 <div className="text-2xl font-bold text-blue-500 mb-4">{index + 1}</div>
                 <h3 className="text-lg font-semibold mb-2">{step}</h3>
                 <p className="text-gray-400">
-                  {index === 0 && "Sign up and verify your identity."}
-                  {index === 1 && "Transfer BTC to your secure wallet."}
-                  {index === 2 && "Receive funds in your preferred currency."}
-                  {index === 3 && "Pay back the loan and get your BTC back."}
+                  {index === 0 && "Sign up and complete your identity verification."}
+                  {index === 1 && "Add your gold or property details for valuation."}
+                  {index === 2 && "Receive Bitcoin directly to your wallet after approval."}
+                  {index === 3 && "Repay the loan to release your collateral."}
                 </p>
               </motion.div>
             ))}
