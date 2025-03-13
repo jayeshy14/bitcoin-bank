@@ -1,3 +1,6 @@
+use napi_derive::napi;
+
+#[napi(object)]
 pub struct LoanParams {
     pub principal_btc: f64,
     pub price_at_loan_time: f64,
@@ -6,6 +9,7 @@ pub struct LoanParams {
     pub loan_time_in_months: u32,
 }
 
+#[napi(object)]
 pub struct EmiResult {
     pub btc_fixed_monthly_emi: f64,
     pub btc_variable_monthly_emi: f64,
