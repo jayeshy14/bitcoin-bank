@@ -6,6 +6,8 @@
 (define-constant BANK_ERR_ZERO-sBTC_PRICE u106)        ;; error thrown for zero sBTC price
 (define-constant BANK_ERR_ZERO-riskFactor u107)        ;; error thrown for zero risk factor
 (define-constant BANK_ERR_ZERO-time u108)              ;; error thrown for zero time
+(define-constant BANK_ERR_INVALID-COLLATERAL-TYPE u109)              ;; error thrown for zero time
+(define-constant BANK_ERR_ZERO-COLLATERAL-VALUE u110)              ;; error thrown for zero time
 (define-constant BANK_ERR_TRANSFER-FAILED u201)        ;; error thrown for failed transfer
 (define-constant BANK_ERR_INVALID-INTEREST u301)       ;; error thrown for invalid interest rate
 (define-constant BANK_ERR_INVALID-LOAN-TYPE u302)      ;; error thrown for invalid loan type
@@ -13,12 +15,19 @@
 (define-constant BANK_ERR_INSUFFICIENT-FUNDS u304)     ;; error when total funds are insufficient
 (define-constant BANK_ERR_ONCHAIN_INSUFFICIENT-FUNDS u305) ;; error when onchain balance is 0 and withdraw is attempted
 (define-constant BANK_ERR_LOAN_ID u306)                ;; error for invalid loan ID
+(define-constant BANK_ERR_INVALID-COLLATERAL-ID u307)                ;; error for invalid loan ID
+(define-constant BANK_ERR_NOT_BORROWER u401)
+(define-constant BANK_ERR_NOT_LENDER u402)
 
 ;; CONSTANTS
 (define-constant ZEROADDRESS 'SP000000000000000000002Q6VF78)  ;; zero address in Clarity
 (define-constant BANK_LOAN_TYPE-EMI u001)            ;; loan type EMI
 (define-constant BANK_LOAN_TYPE-INDEPENDENT u002)      ;; loan type independent
 (define-constant TOKEN_DECIMALS u100000000)
+(define-constant BANK-COLLATERAL_TYPE-GOLD u1001)
+(define-constant BANK-COLLATERAL_TYPE-PROPERTY u1002)
+(define-constant BANK-LOAN-STATUS_CLOSED u2001)
+(define-constant BANK-LOAN-STATUS_OPEN u2002)
 
 ;; VARIABLES
 (define-data-var loadID uint u0)
@@ -43,14 +52,21 @@
         lender: principal,
         borrower: principal,
         loanType: uint,
-        amount: uint,
+        amountInUSD: uint,
+        amountInsBTC: uint,
+        collateral-type: uint,
+        collateral-value: uint,
+        collateral-id: (string-ascii 50),
         interestRate: uint,
-        totalRepayement: uint,
+        totalRepaymentInUSD: uint,
+        totalRepayementInsBTC: uint,  ;; in sBTC
         priceAtLoanTime: uint,
-        riskFactor: uint,
-        timeInMonth: uint
+        riskFactor: uint,  ;; 50 for 0.5
+        timeInMonth: uint,
+        status: uint,
     }
 )
+
 
 ;; PUBLIC FUNCTIONS
 
@@ -81,6 +97,7 @@
     )
 )
 
+
 ;; loan function: called by lender to give a loan.
 (define-public (loan 
         (borrower principal)
@@ -90,17 +107,27 @@
         (priceAtLoanTime uint)     ;; USD per BTC
         (riskFactor uint)
         (timeInMonth uint)
+        (collateral-type uint)
+        (collateral-value uint)
+        (collateral-id (string-ascii 50))
     ) 
     (begin 
         (asserts! (not (is-eq borrower ZEROADDRESS)) (err BANK_ERR_ZERO-ADDRESS))
         (asserts! (not (is-eq amount u0)) (err BANK_ERR_ZERO-AMOUNT))
         (asserts! (not (is-eq priceAtLoanTime u0)) (err BANK_ERR_ZERO-sBTC_PRICE))
         (asserts! (not (is-eq riskFactor u0)) (err BANK_ERR_ZERO-riskFactor))
-        (asserts! (not (is-eq timeInMonth u0)) (err BANK_ERR_ZERO-time))
         (asserts! (and (>= interestRate u1) (<= interestRate u5)) (err BANK_ERR_INVALID-INTEREST))
+        (asserts! (not (is-eq timeInMonth u0)) (err BANK_ERR_ZERO-time))
         (asserts! (or (is-eq loanType BANK_LOAN_TYPE-EMI)
                       (is-eq loanType BANK_LOAN_TYPE-INDEPENDENT))
                   (err BANK_ERR_INVALID-LOAN-TYPE))
+        ;; Validate collateral type
+        (asserts! (or (is-eq collateral-type BANK-COLLATERAL_TYPE-GOLD)
+                      (is-eq collateral-type BANK-COLLATERAL_TYPE-PROPERTY))
+                  (err BANK_ERR_INVALID-LOAN-TYPE))
+        (asserts! (not (is-eq collateral-value u0)) (err BANK_ERR_ZERO-COLLATERAL-VALUE))
+        ;; Validate collateral ID length
+        (asserts! (<= (len collateral-id) u50) (err BANK_ERR_INVALID-LOAN-TYPE))
         (let (
               ;; Convert the amount from BTC to USD using priceAtLoanTime.
               (loan-amount (/ (* amount priceAtLoanTime) TOKEN_DECIMALS))
@@ -110,6 +137,7 @@
          )
          (begin
             (asserts! (>= lender-total (to-int amount)) (err BANK_ERR_INSUFFICIENT-FUNDS))
+            ;; Deduct from lender and add to borrower
             (map-set BANK_offchain-balance
               { owner: contract-caller }
               { balance: (- lender-offchain (to-int amount)) }
@@ -118,18 +146,25 @@
               { owner: borrower }
               { balance: (+ borrower-offchain (to-int amount)) }
             )
+            ;; Store loan details in correct order
             (map-set BANK_loan-details
                 { loan_ID: (var-get loadID) }
                 {
                     lender: contract-caller,
                     borrower: borrower,
                     loanType: loanType,
-                    amount: loan-amount,  ;; Stored in USD
+                    amountInUSD: loan-amount,
+                    amountInsBTC: amount,
+                    collateral-type: collateral-type,
+                    collateral-value: collateral-value,
+                    collateral-id: collateral-id,
                     interestRate: interestRate,
-                    totalRepayement: u0,
+                    totalRepaymentInUSD: u0,
+                    totalRepayementInsBTC: u0,
                     priceAtLoanTime: priceAtLoanTime,
                     riskFactor: riskFactor,
-                    timeInMonth: timeInMonth
+                    timeInMonth: timeInMonth,
+                    status: BANK-LOAN-STATUS_OPEN
                 }
             )
             (var-set loadID (+ (var-get loadID) u1))
@@ -138,9 +173,8 @@
     )
 )
 
-;; repay function: called to process a loan repayment.
-(define-public (repay (loanID uint) (current-price uint) (repaymentTotal uint))
-  ;; Valid loan IDs are less than the current loadID.
+
+(define-public (repay (loanID uint) (current-price uint) (repaymentTotalUSD uint))
   (begin 
     (asserts! (< loanID (var-get loadID)) (err BANK_ERR_LOAN_ID))
     (match (map-get? BANK_loan-details { loan_ID: loanID })
@@ -148,26 +182,83 @@
         (let (
               (lender (get lender some-loan-data))
               (borrower (get borrower some-loan-data))
-              (prevTotalRepayment (get totalRepayement some-loan-data))
+              (prevTotalRepaymentUSD (get totalRepaymentInUSD some-loan-data))
+              (prevTotalRepaymentBTC (get totalRepayementInsBTC some-loan-data))
+              (loanStatus (get status some-loan-data))
               (borrowerOff (default-to 0 (get balance (map-get? BANK_offchain-balance { owner: borrower }))))
               (lenderOff (default-to 0 (get balance (map-get? BANK_offchain-balance { owner: lender }))))
+              (repaymentTotalBTC (/ repaymentTotalUSD current-price)) ;; Convert USD to BTC
               )
-          (asserts! (>= borrowerOff (to-int repaymentTotal)) (err BANK_ERR_INSUFFICIENT-FUNDS))
+          ;; Ensure caller is the borrower
+          (asserts! (is-eq tx-sender borrower) (err BANK_ERR_NOT_BORROWER))
+          ;; Ensure loan is not closed
+          (asserts! (is-eq loanStatus u1) (err BANK-LOAN-STATUS_CLOSED))
+          ;; Check borrower balance
+          (asserts! (>= borrowerOff (to-int repaymentTotalBTC)) (err BANK_ERR_INSUFFICIENT-FUNDS))
+          
           ;; Subtract repayment from borrower's off-chain balance
           (map-set BANK_offchain-balance { owner: borrower }
-            { balance: (- borrowerOff (to-int repaymentTotal)) })
+            { balance: (- borrowerOff (to-int repaymentTotalBTC)) })
           ;; Add repayment to lender's off-chain balance
           (map-set BANK_offchain-balance { owner: lender }
-            { balance: (+ lenderOff (to-int repaymentTotal)) })
-          ;; Update total repayment in the loan details
+            { balance: (+ lenderOff (to-int repaymentTotalBTC)) })
+          ;; Update total repayment in loan details
           (map-set BANK_loan-details { loan_ID: loanID }
-            (merge some-loan-data { totalRepayement: (+ prevTotalRepayment repaymentTotal) }))
+            (merge some-loan-data { 
+              totalRepaymentInUSD: (+ prevTotalRepaymentUSD repaymentTotalUSD),
+              totalRepayementInsBTC: (+ prevTotalRepaymentBTC repaymentTotalBTC)
+            }))
           (ok "Repayment processed successfully")
         )
       (err BANK_ERR_LOAN_ID)
     )
   )
 )
+
+;; Function to close loan (only lender can call)
+(define-public (close-loan (loanID uint))
+  (begin
+    (asserts! (< loanID (var-get loadID)) (err BANK_ERR_LOAN_ID))
+    (match (map-get? BANK_loan-details { loan_ID: loanID })
+      some-loan-data
+      (let ((lender (get lender some-loan-data))
+            (loanStatus (get status some-loan-data)))
+        ;; Ensure caller is the lender
+        (asserts! (is-eq tx-sender lender) (err BANK_ERR_NOT_LENDER))
+        ;; Ensure loan is open
+        (asserts! (is-eq loanStatus u1) (err BANK-LOAN-STATUS_CLOSED))
+        ;; Close the loan
+        (map-set BANK_loan-details { loan_ID: loanID }
+          (merge some-loan-data { status: u0 }))
+        (ok "Loan closed successfully")
+      )
+      (err BANK_ERR_LOAN_ID)
+    )
+  )
+)
+
+;; Function to open loan (only lender can call)
+(define-public (open-loan (loanID uint))
+  (begin
+    (asserts! (< loanID (var-get loadID)) (err BANK_ERR_LOAN_ID))
+    (match (map-get? BANK_loan-details { loan_ID: loanID })
+      some-loan-data
+      (let ((lender (get lender some-loan-data))
+            (loanStatus (get status some-loan-data)))
+        ;; Ensure caller is the lender
+        (asserts! (is-eq tx-sender lender) (err BANK_ERR_NOT_LENDER))
+        ;; Ensure loan is closed
+        (asserts! (is-eq loanStatus u0) (err BANK-LOAN-STATUS_OPEN))
+        ;; Open the loan
+        (map-set BANK_loan-details { loan_ID: loanID }
+          (merge some-loan-data { status: u1 }))
+        (ok "Loan opened successfully")
+      )
+      (err BANK_ERR_LOAN_ID)
+    )
+  )
+)
+
 
 ;; withdraw function: Transfers tokens from contract-caller's on-chain balance.
 (define-public (withdraw (to principal) (amount uint))
