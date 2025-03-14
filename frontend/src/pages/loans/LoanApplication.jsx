@@ -1,135 +1,100 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { motion } from 'framer-motion';
+import { createLoanApplicationApi } from '../../apis/loanApis'; 
+import { getMyCollateralsApi } from '../../apis/collateralApis';
 
-const LoanApplication = () => {
+const LoanApplicationForm = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     amount: '',
-    term: '3',
-    purpose: '',
-    collateralAmount: '',
-    bitcoinAddress: '',
-    loanType: 'platform'
+    interestRate: '',
+    riskFactor: '',
+    term: '',
+    collateralId: '',
   });
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const navigate = useNavigate();
+  
+  const [collaterals, setCollaterals] = useState([]);
+
+  useEffect(() => {
+    const fetchMyCollaterals = async () => {
+      try {
+        const myCollaterals = await getMyCollateralsApi();
+        setCollaterals(myCollaterals);
+      } catch (error) {
+        console.error('Failed to fetch collaterals:', error);
+      }
+    };
+    fetchMyCollaterals();
+  }, []);
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    const { name, value } = e.target;
+    setFormData({ ...formData, [name]: value });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    setError('');
-
     try {
-      await axios.post('http://localhost:3000/api/loans/apply', formData);
-      navigate('/loans/my-loans');
-    } catch (err) {
-      console.error('Error submitting loan application:', err);
-      setError(err.response?.data?.error || 'Error submitting loan application');
-    } finally {
-      setLoading(false);
+      const data = await createLoanApplicationApi(formData);
+      alert(data.message);
+    } catch (error) {
+      alert(error?.data?.error || 'Error submitting loan application');
     }
   };
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <h1 className="text-3xl font-bold mb-8">Apply for a Loan</h1>
-      {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-          {error}
-        </div>
-      )}
+    <div className="max-w-4xl mx-auto p-8 bg-gray-800 text-gray-100 rounded-lg shadow-lg">
+      <motion.h2 
+        className="text-3xl font-bold mb-6 text-center"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5 }}
+      >
+        Apply for a Bitcoin Loan
+      </motion.h2>
       <form onSubmit={handleSubmit} className="space-y-6">
+        {['amount', 'interestRate', 'riskFactor', 'term'].map((field, index) => (
+          <div key={index}>
+            <label className="block mb-2 capitalize">{field}</label>
+            <input 
+              type="text"
+              name={field}
+              value={formData[field]}
+              onChange={handleChange}
+              required
+              className="w-full p-3 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        ))}
         <div>
-          <label className="block text-gray-700 mb-2">Loan Amount (USD)</label>
-          <input
-            type="number"
-            name="amount"
-            value={formData.amount}
-            onChange={handleChange}
-            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-blue-500"
+          <label className="block mb-2">Collateral</label>
+          <select 
+            name="collateralId" 
+            value={formData.collateralId} 
+            onChange={handleChange} 
             required
-            min="1000"
-          />
-        </div>
-        <div>
-          <label className="block text-gray-700 mb-2">Loan Term (months)</label>
-          <select
-            name="term"
-            value={formData.term}
-            onChange={handleChange}
-            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-blue-500"
+            className="w-full p-3 rounded bg-gray-700 border border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <option value="3">3 months</option>
-            <option value="6">6 months</option>
-            <option value="12">12 months</option>
+            <option value="">Select Collateral</option>
+            {collaterals.map((collateral) => (
+              <option key={collateral._id} value={collateral._id}>
+                {`Collateral ${collateral._id}`}
+              </option>
+            ))}
           </select>
         </div>
-        <div>
-          <label className="block text-gray-700 mb-2">Loan Purpose</label>
-          <textarea
-            name="purpose"
-            value={formData.purpose}
-            onChange={handleChange}
-            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-blue-500"
-            rows="3"
-            required
-          />
-        </div>
-        <div>
-          <label className="block text-gray-700 mb-2">Collateral Amount (BTC)</label>
-          <input
-            type="number"
-            name="collateralAmount"
-            value={formData.collateralAmount}
-            onChange={handleChange}
-            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-blue-500"
-            required
-            step="0.00000001"
-          />
-        </div>
-        <div>
-          <label className="block text-gray-700 mb-2">Bitcoin Address</label>
-          <input
-            type="text"
-            name="bitcoinAddress"
-            value={formData.bitcoinAddress}
-            onChange={handleChange}
-            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-blue-500"
-            required
-          />
-        </div>
-        <div>
-          <label className="block text-gray-700 mb-2">Loan Type</label>
-          <select
-            name="loanType"
-            value={formData.loanType}
-            onChange={handleChange}
-            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:border-blue-500"
-          >
-            <option value="platform">Platform-backed Loan</option>
-            <option value="p2p">Peer-to-Peer Loan</option>
-          </select>
-        </div>
-        <button
+        <motion.button 
           type="submit"
-          disabled={loading}
-          className={`w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition duration-200 ${
-            loading ? 'opacity-50 cursor-not-allowed' : ''
-          }`}
+          className="w-full bg-blue-600 hover:bg-blue-700 py-3 rounded-lg font-semibold shadow-lg"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
         >
-          {loading ? 'Submitting...' : 'Submit Application'}
-        </button>
+          Submit Application
+        </motion.button>
       </form>
     </div>
   );
 };
 
-export default LoanApplication; 
+export default LoanApplicationForm;

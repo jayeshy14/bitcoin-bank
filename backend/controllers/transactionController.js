@@ -1,4 +1,4 @@
-import Transaction from '../models/Transaction.js';
+
 import Loan from '../models/Loan.js';
 
 export const getMyTransactions = async (req, res) => {

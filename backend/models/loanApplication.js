@@ -11,14 +11,23 @@ const loanApplicationSchema = new mongoose.Schema({
   amount: {
     type: Number,
     required: true,
-    min: 1000000000
+    min: 10
   },
   //interest rate in percentage
   interestRate: {
     type: Number,
     required: true,
     min: 0,
-    max: 100
+    max: 100,
+    default: 0
+  },
+  //Risk factor
+  riskFactor: {
+    type: Number,
+    required: true,
+    min: 0,
+    max: 100,
+    default: 0
   },
   //duration in months
   term: {
@@ -26,10 +35,6 @@ const loanApplicationSchema = new mongoose.Schema({
     required: true,
     min: 1,
     max: 60
-  },
-  //purpose of loan
-  purpose: {
-    type: String,
   },
   //collateral for loan
   collateral: {
@@ -40,7 +45,7 @@ const loanApplicationSchema = new mongoose.Schema({
   //status of loan application
   status: {
     type: String,
-    enum: ['pending', 'approved', 'rejected'],
+    enum: ['pending', 'fulfilled'],
     default: 'pending'
   },
   //date of loan application
@@ -50,4 +55,5 @@ const loanApplicationSchema = new mongoose.Schema({
   }
 });
 
-export default mongoose.model('LoanApplication', loanApplicationSchema);
+const LoanApplication =  mongoose.model('LoanApplication', loanApplicationSchema);
+export default LoanApplication;

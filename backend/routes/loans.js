@@ -14,7 +14,7 @@ import { runSimulator } from '../controllers/simulatorController.js';
 const router = express.Router();
 
 // Protect all routes
-// router.use(protect);
+router.use(protect);
 
 // Borrower routes
 router.post('/apply', createLoanApplication);
