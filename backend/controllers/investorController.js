@@ -1,5 +1,4 @@
 import Loan from '../models/Loan.js';
-import Transaction from '../models/Transaction.js';
 
 export const getInvestmentOpportunities = async (req, res) => {
   try {

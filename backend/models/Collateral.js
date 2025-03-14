@@ -24,7 +24,7 @@ const collateralSchema = new mongoose.Schema({
   },
   loanAssociation: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Loan',
+    ref: 'Loan' || 'LoanApplication',
     sparse: true
   }
 }, {

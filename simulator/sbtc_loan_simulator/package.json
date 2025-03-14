@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@napi-rs/package-template": "^1.0.0"
+  }
+}

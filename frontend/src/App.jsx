@@ -14,6 +14,7 @@ import Marketplace from './pages/marketplace/Marketplace';
 import { AuthProvider } from './context/AuthContext';
 import PrivateRoute from './components/auth/PrivateRoute';
 import ListCollateral from './pages/loans/ListCollateral';
+import LoanApplicationForm from './pages/loans/LoanApplication';
 
 function App() {
   return (
@@ -34,10 +35,10 @@ function App() {
               }
             />
             <Route
-              path="/loans/apply"
+              path="/borrow"
               element={
                 <PrivateRoute>
-                  <LoanApplication />
+                  <LoanApplicationForm />
                 </PrivateRoute>
               }
             />

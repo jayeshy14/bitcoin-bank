@@ -1,6 +1,5 @@
 import Loan from '../models/Loan.js';
 import Collateral from '../models/Collateral.js';
-import Transaction from '../models/Transaction.js';
 
 export const getDashboardStats = async (req, res) => {
   try {

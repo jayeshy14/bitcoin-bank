@@ -68,9 +68,7 @@ export const removeCollateral = async(req, res) => {
 export const getMyCollaterals = async (req, res) => {
   try {
     const collaterals = await Collateral.find({ owner: req.user.id })
-      .populate('loanAssociation', 'status amount term')
       .sort('-createdAt');
-
     res.json(collaterals);
   } catch (error) {
     res.status(500).json({

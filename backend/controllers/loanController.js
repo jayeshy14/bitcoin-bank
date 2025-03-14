@@ -1,10 +1,10 @@
 import Loan from '../models/Loan.js';
 import Collateral from '../models/Collateral.js';
-import Transaction from '../models/Transaction.js';
-
+import LoanApplication from '../models/loanApplication.js';
 export const createLoanApplication = async (req, res) => {
   try {
-    const { amount, term, purpose, collateralId, interestRate, riskScore } = req.body;
+    const { amount, interestRate, riskFactor, term, collateralId } = req.body;
+    console.log(req.body);
 
     // Verify collateral
     const collateral = await Collateral.findById(collateralId);
@@ -12,29 +12,38 @@ export const createLoanApplication = async (req, res) => {
       return res.status(404).json({ error: 'Collateral not found' });
     }
 
-    if (collateral.status !== 'verified' || collateral.loanAssociation) {
+    if (collateral.status !== 'unlocked' || collateral.loanAssociation) {
       return res.status(400).json({ error: 'Collateral is not available for loan' });
     }
 
-    // Create loan application
-    const loan = await Loan.create({
-      borrower: req.user.id,
-      amount,
-      term,
-      purpose,
+    console.log("Borrower is: ", req.user._id);
+
+    const loanApplicationFields = {
+      borrower: req.user._id,
+      amount: parseInt(amount),
+      interestRate: parseInt(interestRate),
+      riskFactor: parseInt(riskFactor),
+      term: parseInt(term),
       collateral: collateralId,
-      riskScore,
-      interestRate,
-      status: 'pending'
-    });
+      status: 'pending',
+      createdAt: Date.now(),
+    }
+    console.log(loanApplicationFields);
+
+    // Create loan application
+    const loanApplication = await LoanApplication.create(
+      loanApplicationFields
+    );
+    console.log(loanApplication._id);
 
     // Lock collateral
     collateral.status = 'locked';
-    collateral.loanAssociation = loan._id;
+    collateral.loanAssociation = loanApplication._id;
     await collateral.save();
 
-    res.status(201).json({ loan, message: 'Loan application created successfully' });
+    res.status(201).json({ loanApplication, message: 'Loan application created successfully' });
   } catch (error) {
+    console.error(error.stack);
     res.status(500).json({ error: 'Error creating loan application', message: error.message });
   }
 };
