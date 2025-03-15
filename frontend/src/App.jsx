@@ -15,6 +15,7 @@ import { AuthProvider } from './context/AuthContext';
 import PrivateRoute from './components/auth/PrivateRoute';
 import ListCollateral from './pages/loans/ListCollateral';
 import LoanApplicationForm from './pages/loans/LoanApplication';
+import Simulator from './pages/simulator/Simulator';
 
 
 function App() {
@@ -27,6 +28,7 @@ function App() {
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/simulator" element={<Simulator />} />
             <Route
               path="/dashboard"
               element={
