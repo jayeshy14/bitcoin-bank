@@ -81,7 +81,7 @@
               (contract-call? 'ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.sbtc-token
                 transfer 
                 sBTC_amount 
-                contract-caller 
+                contract-caller
                 user_wallet 
                 (some 0x42414e4b5f4445504f53495445)  ;; "BANK_DEPOSITE" as hex memo
               )

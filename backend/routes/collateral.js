@@ -4,7 +4,7 @@ import {
   createCollateral,
   getMyCollaterals,
   getCollateralDetails,
-  removeCollateral
+  removeCollateral,
 } from '../controllers/collateralController.js';
 
 const router = express.Router();
@@ -23,5 +23,7 @@ router.get('/my-collaterals', getMyCollaterals);
 
 // Get details of a specific collateral item
 router.get('/:id', getCollateralDetails);
+
+// Get btc value
 
 export default router;

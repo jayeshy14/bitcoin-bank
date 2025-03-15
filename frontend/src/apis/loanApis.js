@@ -73,5 +73,14 @@ const simulateEmi = async (SimulateData) => {
     }
 }
 
+const getUserWallet = async() => {
+    try {
+        const response = await axios.get(`${API}get_wallet_address`)
+        return response.data;
+    } catch (error) {
+        console.error("Error getting wallet address: ", error);
+        throw error.response?.data?.error || "An error occurred";
+    }
+}
 
-export {createLoanApplicationApi, getMyPendingApplicationsApi, investmentOpportunitiesApi, calculateEmi, simulateEmi}
+export {createLoanApplicationApi, getMyPendingApplicationsApi, investmentOpportunitiesApi, calculateEmi, simulateEmi, getUserWallet}

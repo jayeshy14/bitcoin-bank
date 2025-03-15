@@ -4,12 +4,17 @@ import axios from 'axios';
 import { motion } from 'framer-motion';
 import { getMyCollateralsApi } from '../../apis/collateralApis';
 import { getMyPendingApplicationsApi } from '../../apis/loanApis';
+import { getOffChainBalance, getOnChainBalance } from '../../../../backend/controllers/contractController';
+import { getBalanceAPI } from '../../apis/contractApis';
 
 const Dashboard = () => {
   const { user, logout } = useAuth();
   const [loading, setLoading] = useState(true);
   const [collaterals, setCollaterals] = useState([]);
   const [loanApplications, setLoanApplications] = useState([]);
+  const [onChainBalance, setOnChainBalance] = useState(null)
+  const [offChainBalance, setOffChainBalance] = useState(null)
+  const [Balance, setBalance] = useState(null)
 
 
   useEffect(() => {
@@ -30,11 +35,34 @@ const Dashboard = () => {
     fetchDashboardData();
   }, [logout]);
 
+  useEffect(() => {
+    const fetchBalance = async () => {
+
+      try {
+
+        const getOffChainBalance = await getOffChainBalance();
+        const getOnChainBalance = await getOnChainBalance();
+        const totalBalance = await getBalanceAPI();
+        console.log("balances: ",getOffChainBalance, getOnChainBalance, totalBalance );
+      } catch (error) {
+        console.error("error getting balance, ",error);
+      }
+        
+    }
+
+    fetchBalance();
+  })
+
   if (loading) return <div>Loading...</div>;
 
   return (
     <div className="space-y-12">
       <h1 className="text-3xl font-bold">Welcome, {user?.firstName}!</h1>
+
+      <section>
+        <h2 className="text-2xl font-semibold mb-4">My Balance</h2>
+
+      </section>
 
       {/* My Collaterals Section */}
       <section>

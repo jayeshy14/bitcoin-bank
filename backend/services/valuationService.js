@@ -41,4 +41,26 @@ const getLatestGoldPrice = async() => {
   }
 }
 
-export {getGoldValue, getPropertyValue}
+const getCryptoLatestPrice = async() => {
+  try {
+    const response = await axios.get("https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest", {
+      headers: {
+        "X-CMC_PRO_API_KEY": "f407eef7-98ca-42c9-a0ef-8767951c089b"
+      },
+    });
+
+    const btcData = response.data.data.find((crypto) => crypto.symbol === "BTC");
+    
+    if (!btcData) {
+      throw new Error("BTC data not found");
+    }
+
+    console.log("BTC Price (USD):", btcData.quote.USD.price);
+    return btcData.quote.USD.price;
+  } catch (e) {
+    console.error("Error fetching BTC price:", error.message);
+    return null;
+  }
+}
+
+export {getGoldValue, getPropertyValue, getCryptoLatestPrice}
