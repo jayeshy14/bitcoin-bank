@@ -21,8 +21,8 @@ const LoanApplicationForm = () => {
       try {
         const myCollaterals = await getMyCollateralsApi();
         setCollaterals(myCollaterals);
-         const collateralDetails = await getCollateralDetailsApi(myCollaterals[0]._id);
-         console.log(collateralDetails);
+        const collateralDetails = await getCollateralDetailsApi(myCollaterals[0]._id);
+        console.log(collateralDetails)
       } catch (error) {
         console.error('Failed to fetch collaterals:', error);
       }
