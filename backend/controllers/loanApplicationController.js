@@ -62,8 +62,10 @@ export const getMyPendingApplications =  async(req, res) => {
 
 export const getPendingApplications =  async(req, res) => {
   try {
-    const loanApplications = await LoanApplication.find({status: "pending"})
-    .sort('-createdAt');
+    const loanApplications = await LoanApplication.find({
+      status: "pending",
+      borrower: { $ne: req.user.id } 
+    }).sort('-createdAt');
     res.json(loanApplications);
   } catch (error) {
     res.status(500).json({
