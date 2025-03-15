@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { createLoanApplicationApi } from '../../apis/loanApis'; 
-import { getMyCollateralsApi } from '../../apis/collateralApis';
+import { getCollateralDetailsApi, getMyCollateralsApi } from '../../apis/collateralApis';
 
 const LoanApplicationForm = () => {
   const navigate = useNavigate();
@@ -21,6 +21,8 @@ const LoanApplicationForm = () => {
       try {
         const myCollaterals = await getMyCollateralsApi();
         setCollaterals(myCollaterals);
+         const collateralDetails = await getCollateralDetailsApi(myCollaterals[0]._id);
+         console.log(collateralDetails);
       } catch (error) {
         console.error('Failed to fetch collaterals:', error);
       }
@@ -44,7 +46,7 @@ const LoanApplicationForm = () => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-8 bg-gray-800 text-gray-100 rounded-lg shadow-lg">
+    <div className="min-w-lg mx-auto p-8 bg-gray-800 text-gray-100 rounded-lg shadow-lg">
       <motion.h2 
         className="text-3xl font-bold mb-6 text-center"
         initial={{ opacity: 0 }}
