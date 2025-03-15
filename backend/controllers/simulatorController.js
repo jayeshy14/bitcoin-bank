@@ -4,19 +4,13 @@ const { simulate } = pkg;
 
 export const runSimulator = async(req, res) => {
     try {
-        const { params } = req.body;
-
-        if(!params) {
-            return res.status(400).json({error: "Missing required parameters"});
-        }
-
-        const {
+        const { 
             principalBtc,
             priceAtLoanTime,
             monthlyInterestRate,
             riskPercentage,
-            loanTimeInMonths,
-        } = params;
+            loanTimeInMonths 
+        } = req.body;
 
         const result = simulate(principalBtc, priceAtLoanTime, monthlyInterestRate, riskPercentage, loanTimeInMonths);
         res.json(result);

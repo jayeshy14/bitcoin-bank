@@ -8,6 +8,7 @@ import authRoutes from './routes/auth.js';
 import loanRoutes from './routes/loans.js';
 import collateralRoutes from './routes/collateral.js';
 import cityRoutes from "./routes/city.js";
+import contractRoutes from "./routes/contract.js";
 
 // Configure environment variables
 dotenv.config();
@@ -28,6 +29,7 @@ const startServer = async () => {
     app.use('/api/loans', loanRoutes);
     app.use('/api/collateral', collateralRoutes);
     app.use('/api/cities', cityRoutes);
+    app.use('/api/contracts', contractRoutes);
 
     // Error handling middleware
     app.use((err, req, res, next) => {

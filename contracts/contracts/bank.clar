@@ -168,13 +168,13 @@
                 }
             )
             (var-set loadID (+ (var-get loadID) u1))
-            (ok "Loan processed successfully")
+            (ok (- (var-get loadID) u1))
          ))
     )
 )
 
 
-(define-public (repay (loanID uint) (current-price uint) (repaymentTotalUSD uint))
+(define-public (repay (loanID uint) (current-price uint) (repaymentTotalBTC uint))
   (begin 
     (asserts! (< loanID (var-get loadID)) (err BANK_ERR_LOAN_ID))
     (match (map-get? BANK_loan-details { loan_ID: loanID })
@@ -187,7 +187,7 @@
               (loanStatus (get status some-loan-data))
               (borrowerOff (default-to 0 (get balance (map-get? BANK_offchain-balance { owner: borrower }))))
               (lenderOff (default-to 0 (get balance (map-get? BANK_offchain-balance { owner: lender }))))
-              (repaymentTotalBTC (/ repaymentTotalUSD current-price)) ;; Convert USD to BTC
+              (repaymentTotalUSD (* repaymentTotalBTC current-price)) ;; Convert BTC to USD
               )
           ;; Ensure caller is the borrower
           (asserts! (is-eq tx-sender borrower) (err BANK_ERR_NOT_BORROWER))
