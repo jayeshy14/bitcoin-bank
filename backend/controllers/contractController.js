@@ -20,7 +20,7 @@ const SBTC_AMOUNT = (amount) => BigInt(Math.round(parseFloat(amount) * 10 ** DEC
 // Deposit Function
 export const deposit = async (req, res) => {
     try {
-        const userId = req.user._id;
+        const userId = req.user.id;
         const { amount } = req.body;
         const wallet = await Wallet.findOne({ owner: userId });
         if (!wallet) {
@@ -61,7 +61,7 @@ export const deposit = async (req, res) => {
 export const getBalance = async (req, res) => {
     try {
         console.log("fetching balance...");
-        const userId = req.user._id;
+        const userId = req.user.id;
         const wallet = await Wallet.findOne({ owner: userId });
         if (!wallet) {
             return res.status(404).json({ error: "Wallet not found" });
@@ -75,21 +75,31 @@ export const getBalance = async (req, res) => {
                 principalCV(wallet.address)
             ],
             network: NETWORK,
-            senderAddress: who
+            senderAddress: wallet.address
         });
 
-        res.status(201).json({ result, message: 'Balance fetched successfully' });
+        console.log("total balance: ", result);
+
+        // Convert BigInt values to strings in the response
+        const formattedResult = JSON.parse(
+            JSON.stringify(result, (key, value) =>
+                typeof value === "bigint" ? value.toString() : value
+            )
+        );
+
+        res.status(200).json({ result: formattedResult, message: 'Balance fetched successfully' });
     } catch (e) {
         console.log("error getting balance", e);
         res.status(500).json({ error: 'Error fetching balance', message: e.message });
     }
 };
 
+
 // Loan Issuance Function
 export const issueLoan = async (req, res) => {
     try {
         const { borrower, amountInBTC, interestRate, loanType, priceAtLoanTime, riskFactor, term, collateralType, collateralValue, collateral } = req.body;
-        const lenderUserId = req.user._id;
+        const lenderUserId = req.user.id;
         const borrowerData = await Wallet.findOne({ owner: borrower});
         if (!borrowerData) {
             return res.status(404).json({ error: "Borrower Wallet not found" });
@@ -194,7 +204,7 @@ export const getLoanStatus = async (req, res) => {
 
 export const withdraw = async (req, res) => {
     try {
-        const userId = req.user._id;
+        const userId = req.user.id;
         const { to, amount} = req.body;
         const wallet = await Wallet.findOne({ owner: userId });
         if (!wallet) {
@@ -223,7 +233,7 @@ export const withdraw = async (req, res) => {
 
 export const repay = async (req, res) => {
     try {
-        const userId = req.user._id;
+        const userId = req.user.id;
         const { loanID, currentPrice, amountInBTC } = req.body;
         const wallet = await Wallet.findOne({ owner: userId });
 
@@ -271,7 +281,7 @@ export const repay = async (req, res) => {
 export const closeLoan = async (req, res) => {
     try {
         const { loanId } = req.body;
-        const userId = req.user._id;
+        const userId = req.user.id;
         const wallet = await Wallet.findOne({ owner: userId });
         if (!wallet) {
             return res.status(404).json({ error: "Wallet not found" });
@@ -302,7 +312,7 @@ export const closeLoan = async (req, res) => {
 export const openLoan = async (req, res) => {
     try {
         const { loanId } = req.body;
-        const userId = req.user._id;
+        const userId = req.user.id;
         const wallet = await Wallet.findOne({ owner: userId });
         if (!wallet) {
             return res.status(404).json({ error: "Wallet not found" });
@@ -332,7 +342,7 @@ export const openLoan = async (req, res) => {
 
 export const getOnChainBalance = async (req, res) => {
     try {
-        const userId = req.user._id;
+        const userId = req.user.id;
         const wallet = await Wallet.findOne({ owner: userId });
         if (!wallet) {
             return res.status(404).json({ error: "Wallet not found" });
@@ -347,7 +357,14 @@ export const getOnChainBalance = async (req, res) => {
             senderAddress: wallet.address,
         });
 
-        res.status(201).json({ result, message: 'On-chain balance retrieved successfully' });
+        // Convert BigInt values to strings in the response
+        const formattedResult = JSON.parse(
+            JSON.stringify(result, (key, value) =>
+                typeof value === "bigint" ? value.toString() : value
+            )
+        );
+
+        res.status(201).json({ result:formattedResult, message: 'On-chain balance retrieved successfully' });
     } catch (e) {
         res.status(500).json({ error: 'Error fetching on-chain balance', message: e.message });
     }
@@ -356,22 +373,35 @@ export const getOnChainBalance = async (req, res) => {
 export const getOffChainBalance = async (req, res) => {
     try {
         console.log("fetching balance...");
-        const userId = req.user._id;
+        const userId = req.user.id;
         const wallet = await Wallet.findOne({ owner: userId });
         if (!wallet) {
             return res.status(404).json({ error: "Wallet not found" });
         }
 
-        const result = await callReadOnlyFunction({
+        const functionParameters = {
             contractAddress: CONTRACT_ADDRESS,
             contractName: CONTRACT_NAME,
             functionName: "get-offChain-balance",
             functionArgs: [principalCV(wallet.address)],
             network: NETWORK,
             senderAddress: wallet.address
-        });
+        }
+        console.log("function parameters: ", functionParameters);
 
-        res.status(201).json({ result, message: 'Off-chain balance retrieved successfully' });
+
+        const result = await callReadOnlyFunction(
+            functionParameters
+        );
+
+        // Convert BigInt values to strings in the response
+        const formattedResult = JSON.parse(
+            JSON.stringify(result, (key, value) =>
+                typeof value === "bigint" ? value.toString() : value
+            )
+        );
+
+        res.status(201).json({ result:formattedResult, message: 'Off-chain balance retrieved successfully' });
     } catch (e) {
         console.log("error fetching offchain Balance", error);
         res.status(500).json({ error: 'Error fetching off-chain balance', message: e.message });
@@ -380,7 +410,7 @@ export const getOffChainBalance = async (req, res) => {
 
 export const getTotalLoanId = async (req, res) => {
     try {
-        const userId = req.user._id;
+        const userId = req.user.id;
         const { loanID, currentPrice, amountInBTC } = req.body;
         const wallet = await Wallet.findOne({ owner: userId });
 
@@ -405,7 +435,7 @@ export const getTotalLoanId = async (req, res) => {
 
 export const getByLoanId = async (req, res) => {
     try {
-        const userId = req.user._id;
+        const userId = req.user.id;
         const { loanID, currentPrice, amountInBTC } = req.body;
         const wallet = await Wallet.findOne({ owner: userId });
 
