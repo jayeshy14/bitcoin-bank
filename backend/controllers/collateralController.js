@@ -81,8 +81,6 @@ export const getMyCollaterals = async (req, res) => {
 export const getCollateralDetails = async (req, res) => {
   try {
     const collateral = await Collateral.findById(req.params.id)
-      .populate('owner', 'firstName lastName email')
-      .populate('loanAssociation');
 
     if (!collateral) {
       return res.status(404).json({ error: 'Collateral not found' });

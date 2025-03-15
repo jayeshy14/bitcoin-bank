@@ -1,107 +1,54 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import React, { useEffect, useState } from 'react';
+import { motion } from 'framer-motion';
+// import { getAllActiveLoanApplicationsApi } from '../../apis/loanApis';
 
 const InvestmentOpportunities = () => {
-  const [opportunities, setOpportunities] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [loanApplications, setLoanApplications] = useState([]);
 
   useEffect(() => {
-    const fetchOpportunities = async () => {
-      console.log('Fetching investment opportunities...');
+    const fetchLoanApplications = async () => {
       try {
-        const response = await axios.get('http://localhost:3000/api/investor/opportunities');
-        console.log('Response:', response.data);
-        setOpportunities(response.data);
-      } catch (err) {
-        console.error('Error fetching investment opportunities:', err);
-        if (err.response && err.response.status === 403) {
-          setError('You do not have permission to access this resource. Please check your account role.');
-        } else {
-          setError('Error fetching investment opportunities: ' + err.message);
-        }
-      } finally {
-        setLoading(false);
-        console.log('Loading state set to false');
+        const activeLoans = await getAllActiveLoanApplicationsApi();
+        setLoanApplications(activeLoans);
+      } catch (error) {
+        console.error('Error fetching active loan applications:', error);
       }
     };
-
-    fetchOpportunities();
+    fetchLoanApplications();
   }, []);
 
-  const handleInvest = async (loanId) => {
-    try {
-      await axios.post(`http://localhost:3000/api/investor/invest/${loanId}`);
-      // Remove the invested opportunity from the list
-      setOpportunities(opportunities.filter(opp => opp._id !== loanId));
-    } catch (err) {
-      setError('Error processing investment: ' + err.message);
-    }
-  };
-
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div className="text-red-600">{error}</div>;
-
   return (
-    <div>
-      <h1 className="text-3xl font-bold mb-8">Investment Opportunities</h1>
-      <div className="grid gap-6">
-        {opportunities.map(loan => (
-          <div key={loan._id} className="bg-white p-6 rounded-lg shadow">
-            <div className="flex justify-between items-start mb-4">
-              <div>
-                <h2 className="text-xl font-semibold">
-                  Loan #{loan._id.slice(-6)}
-                </h2>
-                <p className="text-gray-600">
-                  Amount: {loan.amount} USD
-                </p>
-              </div>
-              <div className="text-right">
-                <p className="text-gray-600">Risk Score</p>
-                <p className={`font-semibold ${
-                  loan.riskScore >= 80 ? 'text-green-600' :
-                  loan.riskScore >= 60 ? 'text-yellow-600' :
-                  'text-red-600'
-                }`}>
-                  {loan.riskScore}/100
-                </p>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div>
-                <p className="text-gray-600">Term</p>
-                <p className="font-semibold">{loan.term} months</p>
-              </div>
-              <div>
-                <p className="text-gray-600">Interest Rate</p>
-                <p className="font-semibold">{loan.interestRate}%</p>
-              </div>
-              <div>
-                <p className="text-gray-600">Collateral</p>
-                <p className="font-semibold">{loan.collateral?.value?.amount} BTC</p>
-              </div>
-              <div>
-                <p className="text-gray-600">LTV Ratio</p>
-                <p className="font-semibold">
-                  {((loan.amount / (loan.collateral?.value?.amount * 30000)) * 100).toFixed(2)}%
-                </p>
-              </div>
-            </div>
-            <button
-              onClick={() => handleInvest(loan._id)}
-              className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
+    <div className="min-w-lg mx-auto p-8 bg-gray-900 text-gray-100 rounded-lg shadow-xl border border-gray-700">
+      <motion.h2 
+        className="text-4xl font-extrabold mb-8 text-center text-yellow-400 uppercase tracking-wider"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5 }}
+      >
+        Active Loan Applications
+      </motion.h2>
+      {loanApplications.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {loanApplications.map((loan) => (
+            <motion.div 
+              key={loan._id} 
+              className="p-6 bg-gray-800 rounded-xl shadow-lg border border-gray-600 transition-transform transform hover:scale-105"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
             >
-              Invest Now
-            </button>
-          </div>
-        ))}
-        {opportunities.length === 0 && (
-          <div className="text-center py-8 text-gray-500">
-            No investment opportunities available at the moment.
-          </div>
-        )}
-      </div>
+              <h3 className="text-2xl font-bold text-yellow-300 mb-2">Loan ID: {loan._id}</h3>
+              <p className="text-lg text-gray-300"><strong>Amount:</strong> <span className="text-yellow-400">{loan.amount} BTC</span></p>
+              <p className="text-lg text-gray-300"><strong>Interest Rate:</strong> <span className="text-yellow-400">{loan.interestRate}%</span></p>
+              <p className="text-lg text-gray-300"><strong>Risk Factor:</strong> <span className="text-yellow-400">{loan.riskFactor}</span></p>
+              <p className="text-lg text-gray-300"><strong>Term:</strong> <span className="text-yellow-400">{loan.term} months</span></p>
+              <p className="text-lg text-gray-300"><strong>Collateral ID:</strong> <span className="text-yellow-400">{loan.collateral}</span></p>
+              <p className="text-lg font-semibold text-green-400 mt-4">Status: {loan.status}</p>
+            </motion.div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-center text-gray-400 text-lg mt-6">No active loan applications available.</p>
+      )}
     </div>
   );
 };

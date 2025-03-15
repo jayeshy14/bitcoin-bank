@@ -2,15 +2,11 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import connectDB from './config/db.js';
-import scheduleLiquidationMonitoring from './scheduledTasks/liquidationScheduler.js';
 
 // Import routes
 import authRoutes from './routes/auth.js';
 import loanRoutes from './routes/loans.js';
 import collateralRoutes from './routes/collateral.js';
-import investorRoutes from './routes/investor.js';
-import transactionRoutes from './routes/transactions.js';
-import dashboardRoutes from './routes/dashboard.js';
 import cityRoutes from "./routes/city.js";
 import contractRoutes from "./routes/contract.js";
 
@@ -32,14 +28,8 @@ const startServer = async () => {
     app.use('/api/auth', authRoutes);
     app.use('/api/loans', loanRoutes);
     app.use('/api/collateral', collateralRoutes);
-    app.use('/api/investor', investorRoutes);
-    app.use('/api/transactions', transactionRoutes);
-    app.use('/api/dashboard', dashboardRoutes);
     app.use('/api/cities', cityRoutes);
     app.use('/api/contracts', contractRoutes);
-
-    // Start the liquidation monitoring
-    scheduleLiquidationMonitoring();
 
     // Error handling middleware
     app.use((err, req, res, next) => {
