@@ -1,6 +1,6 @@
 import express from 'express';
 import { protect, authorize } from '../middleware/auth.js';
-import { createLoanApplication } from '../controllers/loanApplicationController.js';
+import { createLoanApplication, getMyPendingApplicationsApi } from '../controllers/loanApplicationController.js';
 import { getEmiData } from '../controllers/calculatorController.js';
 import { runSimulator } from '../controllers/simulatorController.js';
 
@@ -11,6 +11,7 @@ router.use(protect);
 
 // Borrower routes
 router.post('/apply', createLoanApplication);
+router.post('/my-applications', getMyPendingApplicationsApi);
 // router.get('/my-loans', getMyLoans);
 // router.post('/:id/payment', makeLoanPayment);
 
