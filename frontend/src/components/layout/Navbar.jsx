@@ -43,10 +43,10 @@ const Navbar = () => {
                   <MenuItem>
                     {({ active }) => (
                       <Link
-                        to="/profile"
+                        to="/deposit"
                         className={`block px-4 py-2 text-sm ${active ? 'bg-blue-500 text-white' : 'text-gray-700'}`}
                       >
-                        Profile
+                        Deposit
                       </Link>
                     )}
                   </MenuItem>

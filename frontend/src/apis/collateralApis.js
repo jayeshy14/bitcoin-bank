@@ -18,7 +18,7 @@ const createCollateralApi = async (formData) => {
 
 const removeCollateralApi = async (id) => {
     try {
-        const response = await axios.delete(`${API}/remove/${id}`, {
+        const response = await axios.delete(`${API}remove/${id}`, {
             headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
         });
         return response.data;
@@ -30,7 +30,7 @@ const removeCollateralApi = async (id) => {
 
 const getMyCollateralsApi = async() => {
     try {
-        const response = await axios.get(`${API}/my-collaterals`,{
+        const response = await axios.get(`${API}my-collaterals`,{
             headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
         });
         return response.data;
@@ -41,7 +41,7 @@ const getMyCollateralsApi = async() => {
 
 const getCollateralDetailsApi = async(id) => {
     try {
-        const response = await axios.get(`${API}/${id}`, {
+        const response = await axios.get(`${API}${id}`, {
             headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
         })
         return response.data;
@@ -61,4 +61,14 @@ const fetchCitiesApi = async() => {
     }
 }
 
-export { createCollateralApi, removeCollateralApi, getCollateralDetailsApi, getMyCollateralsApi, fetchCitiesApi };
+const getBTCvalueInUSD = async () => {
+    try {
+        const response = await axios.get('http://localhost:3000/api/btc');
+        console.log(response.data);
+        return response.data;
+    } catch (error) {
+        console.error(error);
+    }
+}
+
+export { createCollateralApi, removeCollateralApi, getCollateralDetailsApi, getMyCollateralsApi, fetchCitiesApi, getBTCvalueInUSD};

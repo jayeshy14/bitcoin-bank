@@ -1,5 +1,8 @@
 import Collateral from '../models/Collateral.js';
 import LoanApplication from '../models/loanApplication.js';
+import Wallet from '../models/Wallet.js';
+
+
 export const createLoanApplication = async (req, res) => {
   try {
     const { amount, interestRate, riskFactor, term, collateralId } = req.body;
@@ -68,6 +71,20 @@ export const getPendingApplications =  async(req, res) => {
   } catch (error) {
     res.status(500).json({
       error: 'Error fetching pending applications',
+      message: error.message
+    })
+  }
+}
+
+export const getUserWalletAddress = async(req, res) => {
+  try{
+    const userId =  req.user._id;
+    const wallet = await Wallet.findOne({ owner: userId });
+
+    res.status(200).json(wallet.address);
+  } catch(error) {
+    res.status(500).json({
+      error: 'Error fetching wallet address',
       message: error.message
     })
   }

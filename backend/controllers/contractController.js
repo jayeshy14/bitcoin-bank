@@ -5,7 +5,8 @@ import {
     PostConditionMode, 
     principalCV, 
     uintCV, 
-    stringAsciiCV 
+    stringAsciiCV, 
+    Pc
 } from "@stacks/transactions";
 import Wallet from "../models/Wallet.js";
 import Loan from "../models/loan.js";
@@ -14,7 +15,7 @@ const CONTRACT_ADDRESS = "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM";
 const CONTRACT_NAME = "bank";
 const NETWORK = "devnet";
 const DECIMAL = 8;
-const SBTC_AMOUNT = (amount) => BigInt(amount) * BigInt(10 ** DECIMAL);
+const SBTC_AMOUNT = (amount) => BigInt(Math.round(parseFloat(amount) * 10 ** DECIMAL));
 
 // Deposit Function
 export const deposit = async (req, res) => {
@@ -26,6 +27,13 @@ export const deposit = async (req, res) => {
             return res.status(404).json({ error: "Wallet not found" });
         }
 
+        const senderPrivateKey = "753b7cc01a1a2e86221266a154af739463fce51219d97e4f856cd7200c3bd2a601";
+
+        console.log("amount: ",amount, "wallet address:", wallet.address, "amount: ", SBTC_AMOUNT(amount));
+
+        let pc = Pc.principal("ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM")
+            .willSendEq(SBTC_AMOUNT(amount))
+            .ft("ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM.sbtc-token", "sbtc")
         const transaction = await makeContractCall({
             contractAddress: CONTRACT_ADDRESS,
             contractName: CONTRACT_NAME,
@@ -35,13 +43,16 @@ export const deposit = async (req, res) => {
                 uintCV(SBTC_AMOUNT(amount))
             ],
             postConditionMode: PostConditionMode.Deny,
-            senderKey: wallet.stxPrivateKey,
+            postConditions: [pc],
+            senderKey: senderPrivateKey,
             network: NETWORK,
         });
 
         const response = await broadcastTransaction(transaction, NETWORK);
+        console.log("deposit response, ", response);
         res.status(201).json({ response, message: 'Deposit successful' });
     } catch (e) {
+        console.error("error in deposit", e);
         res.status(500).json({ error: 'Error in deposit', message: e.message });
     }
 };
@@ -49,6 +60,7 @@ export const deposit = async (req, res) => {
 // Get Balance Function
 export const getBalance = async (req, res) => {
     try {
+        console.log("fetching balance...");
         const userId = req.user._id;
         const wallet = await Wallet.findOne({ owner: userId });
         if (!wallet) {
@@ -68,6 +80,7 @@ export const getBalance = async (req, res) => {
 
         res.status(201).json({ result, message: 'Balance fetched successfully' });
     } catch (e) {
+        console.log("error getting balance", e);
         res.status(500).json({ error: 'Error fetching balance', message: e.message });
     }
 };
@@ -75,14 +88,21 @@ export const getBalance = async (req, res) => {
 // Loan Issuance Function
 export const issueLoan = async (req, res) => {
     try {
-        const { borrower, amount, interestRate, loanType, priceAtLoanTime, riskFactor, timeInMonth, collateralType, collateralValue, collateralId } = req.body;
-        const userId = req.user._id;
-        const wallet = await Wallet.findOne({ owner: userId });
-        if (!wallet) {
+        const { borrower, amountInBTC, interestRate, loanType, priceAtLoanTime, riskFactor, term, collateralType, collateralValue, collateral } = req.body;
+        const lenderUserId = req.user._id;
+        const borrowerData = await Wallet.findOne({ owner: borrower});
+        if (!borrowerData) {
+            return res.status(404).json({ error: "Borrower Wallet not found" });
+        }
+        
+        const borrowerAddress = borrowerData.address;
+        console.log("add: ", borrowerAddress, "amount", SBTC_AMOUNT(amountInBTC), "interestRate: ", interestRate, "loanType: ", loanType, "priceatLoanTime", priceAtLoanTime, "timeInMonth: ",term, "collateralType: ", collateralType, "colValue: ",collateralValue);
+        const Lenderwallet = await Wallet.findOne({ owner: lenderUserId });
+        if (!Lenderwallet) {
             return res.status(404).json({ error: "Wallet not found" });
         }
 
-        if (typeof collateralId !== "string" || collateralId.length > 50) {
+        if (typeof collateral !== "string" || collateral.length > 50) {
             return res.status(400).json({ error: "Invalid collateralId. Must be an ASCII string with max length of 50." });
         }
 
@@ -91,32 +111,44 @@ export const issueLoan = async (req, res) => {
             contractName: CONTRACT_NAME,
             functionName: "loan",
             functionArgs: [
-                principalCV(borrower),
-                uintCV(SBTC_AMOUNT(amount)),
+                principalCV(borrowerAddress),
+                uintCV(SBTC_AMOUNT(amountInBTC)),
                 uintCV(interestRate),
                 uintCV(loanType),
                 uintCV(priceAtLoanTime),
                 uintCV(riskFactor),
-                uintCV(timeInMonth),
+                uintCV(term),
                 uintCV(collateralType),
                 uintCV(collateralValue),
-                stringAsciiCV(collateralId) 
+                stringAsciiCV(collateral) 
             ],
             postConditionMode: PostConditionMode.Deny,
-            senderKey: wallet.stxPrivateKey,
+            senderKey: Lenderwallet.stxPrivateKey,
             network: NETWORK,
         });
 
         const response = await broadcastTransaction(transaction, NETWORK);
+
         if (response.error) {
             return res.status(400).json({ error: "Transaction failed", message: response.error });
         }
+
+        const result = await callReadOnlyFunction({
+            contractAddress: CONTRACT_ADDRESS,
+            contractName: CONTRACT_NAME,
+            functionName: "get-total-loan-Id",
+            functionArgs: [],
+            network: NETWORK,
+            senderAddress: Lenderwallet.address,
+        });
+
         
         const nextDueDate = Loan.prototype.calculateNextDueDate();
         
         const loan = new Loan({
-            userId,
-            loanId: response.txid, // we need to check this
+            lenderUserId,
+            borrowerUserId: borrower,
+            loanId: Number(result.value),
             borrower,
             principalBtc: amount,
             interestRate,
@@ -126,14 +158,16 @@ export const issueLoan = async (req, res) => {
             timeInMonth,
             collateralType,
             collateralValue,
-            collateralId,
-            nextDueDate
+            collateralId: collateral,
+            nextDueDate,
+            status: "open",
         });
 
         await loan.save();
 
         res.status(201).json({ response, loan, message: "Loan issued successfully" });
     } catch (e) {
+        console.log("error in loan: ", e);
         res.status(500).json({ error: 'Error issuing loan', message: e.message });
     }
 };
@@ -197,7 +231,7 @@ export const repay = async (req, res) => {
             return res.status(404).json({ error: "Wallet not found" });
         }
 
-        const loan = await Loan.findOne({ loanId: loanID, userId });
+        const loan = await Loan.findOne({ loanId: loanID });
 
         if (!loan) {
             return res.status(404).json({ error: "Loan not found" });
@@ -243,6 +277,8 @@ export const closeLoan = async (req, res) => {
             return res.status(404).json({ error: "Wallet not found" });
         }
 
+        const loan = await Loan.findOne({ loanId });
+
         const transaction = await makeContractCall({
             contractAddress: CONTRACT_ADDRESS,
             contractName: CONTRACT_NAME,
@@ -252,6 +288,9 @@ export const closeLoan = async (req, res) => {
             senderKey: wallet.stxPrivateKey,
             network: NETWORK,
         });
+
+        loan.status = "close";
+        await loan.save();
 
         const response = await broadcastTransaction(transaction, NETWORK);
         res.status(201).json({ response, message: 'Loan closed successfully' });
@@ -269,6 +308,8 @@ export const openLoan = async (req, res) => {
             return res.status(404).json({ error: "Wallet not found" });
         }
 
+        const loan = await Loan.findOne({ loanId: loanID });
+
         const transaction = await makeContractCall({
             contractAddress: CONTRACT_ADDRESS,
             contractName: CONTRACT_NAME,
@@ -278,6 +319,9 @@ export const openLoan = async (req, res) => {
             senderKey: wallet.stxPrivateKey,
             network: NETWORK,
         });
+
+        loan.status = "open";
+        await loan.save();
 
         const response = await broadcastTransaction(transaction, NETWORK);
         res.status(201).json({ response, message: 'Loan opened successfully' });
@@ -300,7 +344,7 @@ export const getOnChainBalance = async (req, res) => {
             functionName: "get-onChain-balance",
             functionArgs: [principalCV(wallet.address)],
             network: NETWORK,
-            senderAddress: req.who
+            senderAddress: wallet.address,
         });
 
         res.status(201).json({ result, message: 'On-chain balance retrieved successfully' });
@@ -311,6 +355,7 @@ export const getOnChainBalance = async (req, res) => {
 
 export const getOffChainBalance = async (req, res) => {
     try {
+        console.log("fetching balance...");
         const userId = req.user._id;
         const wallet = await Wallet.findOne({ owner: userId });
         if (!wallet) {
@@ -323,24 +368,33 @@ export const getOffChainBalance = async (req, res) => {
             functionName: "get-offChain-balance",
             functionArgs: [principalCV(wallet.address)],
             network: NETWORK,
-            senderAddress: req.who
+            senderAddress: wallet.address
         });
 
         res.status(201).json({ result, message: 'Off-chain balance retrieved successfully' });
     } catch (e) {
+        console.log("error fetching offchain Balance", error);
         res.status(500).json({ error: 'Error fetching off-chain balance', message: e.message });
     }
 };
 
 export const getTotalLoanId = async (req, res) => {
     try {
+        const userId = req.user._id;
+        const { loanID, currentPrice, amountInBTC } = req.body;
+        const wallet = await Wallet.findOne({ owner: userId });
+
+        if (!wallet) {
+            return res.status(404).json({ error: "Wallet not found" });
+        }
+
         const result = await callReadOnlyFunction({
             contractAddress: CONTRACT_ADDRESS,
             contractName: CONTRACT_NAME,
             functionName: "get-total-loan-Id",
             functionArgs: [],
             network: NETWORK,
-            senderAddress: req.user.address,
+            senderAddress: wallet.address,
         });
 
         res.status(200).json({ result, message: "Total Loan ID fetched successfully" });
@@ -351,6 +405,14 @@ export const getTotalLoanId = async (req, res) => {
 
 export const getByLoanId = async (req, res) => {
     try {
+        const userId = req.user._id;
+        const { loanID, currentPrice, amountInBTC } = req.body;
+        const wallet = await Wallet.findOne({ owner: userId });
+
+        if (!wallet) {
+            return res.status(404).json({ error: "Wallet not found" });
+        }
+
         const { loanId } = req.body;
         const result = await callReadOnlyFunction({
             contractAddress: CONTRACT_ADDRESS,
@@ -358,7 +420,7 @@ export const getByLoanId = async (req, res) => {
             functionName: "get-by-loan-Id",
             functionArgs: [uintCV(loanId)],
             network: NETWORK,
-            senderAddress: req.user.address,
+            senderAddress: wallet.address,
         });
 
         res.status(200).json({ result, message: "Loan details fetched successfully" });

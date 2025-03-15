@@ -1,5 +1,6 @@
 import Loan from "../models/loan.js";
 import pkg from "../services/rustService.cjs";
+import { getCryptoLatestPrice } from "../services/valuationService.js";
 
 const { getEmi } = pkg;
 
@@ -16,8 +17,9 @@ export const getEmiData = async (req, res) => {
             monthlyInterestRate,
             riskPercentage,
             loanTimeInMonths, 
-            currentPrice 
         } = loan;
+
+        const currentPrice = await getCryptoLatestPrice();
 
         const emiResult = getEmi(
             principalBtc, 

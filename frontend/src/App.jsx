@@ -16,6 +16,7 @@ import PrivateRoute from './components/auth/PrivateRoute';
 import ListCollateral from './pages/loans/ListCollateral';
 import LoanApplicationForm from './pages/loans/LoanApplication';
 import Simulator from './pages/simulator/Simulator';
+import Deposit from './pages/deposit/Deposit';
 
 
 function App() {
@@ -34,6 +35,14 @@ function App() {
               element={
                 <PrivateRoute>
                   <Dashboard />
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/deposit"
+              element={
+                <PrivateRoute>
+                  <Deposit />
                 </PrivateRoute>
               }
             />

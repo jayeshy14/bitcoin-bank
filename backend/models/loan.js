@@ -1,7 +1,12 @@
 import mongoose from "mongoose";
 
 const loanSchema = new mongoose.Schema({
-    userId: {
+    lenderUserId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: true
+    },
+    borrowerUserId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
         required: true
@@ -55,6 +60,11 @@ const loanSchema = new mongoose.Schema({
     nextDueDate: { 
         type: Date,
         required: true
+    },
+    status: {
+        type: String,
+        required: true,
+        maxlength: 50
     },
     createdAt: { 
         type: Date,

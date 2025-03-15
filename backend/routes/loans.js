@@ -1,6 +1,6 @@
 import express from 'express';
 import { protect, authorize } from '../middleware/auth.js';
-import { createLoanApplication, getMyPendingApplications, getPendingApplications } from '../controllers/loanApplicationController.js';
+import { createLoanApplication, getMyPendingApplications, getPendingApplications, getUserWalletAddress } from '../controllers/loanApplicationController.js';
 import { getEmiData } from '../controllers/calculatorController.js';
 import { runSimulator } from '../controllers/simulatorController.js';
 
@@ -28,5 +28,7 @@ router.post("/calculate_emi", getEmiData)
 
 //simulator
 router.post("/simulate_loan", runSimulator)
+
+router.get("/get_wallet_address", getUserWalletAddress)
 
 export default router;
