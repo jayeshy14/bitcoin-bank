@@ -19,6 +19,7 @@ const SBTC_AMOUNT = (amount) => BigInt(amount) * BigInt(10 ** DECIMAL);
 export const deposit = async (req, res) => {
     try {
         const userId = req.user._id;
+        const { amount } = req.body;
         const wallet = await Wallet.findOne({ owner: userId });
         if (!wallet) {
             return res.status(404).json({ error: "Wallet not found" });
@@ -30,7 +31,7 @@ export const deposit = async (req, res) => {
             functionName: "deposit",
             functionArgs: [
                 principalCV(wallet.address),
-                uintCV(SBTC_AMOUNT(req.amount))
+                uintCV(SBTC_AMOUNT(amount))
             ],
             postConditionMode: PostConditionMode.Deny,
             senderKey: wallet.stxPrivateKey,
@@ -47,15 +48,21 @@ export const deposit = async (req, res) => {
 // Get Balance Function
 export const getBalance = async (req, res) => {
     try {
+        const userId = req.user._id;
+        const wallet = await Wallet.findOne({ owner: userId });
+        if (!wallet) {
+            return res.status(404).json({ error: "Wallet not found" });
+        }
+
         const result = await callReadOnlyFunction({
             contractAddress: CONTRACT_ADDRESS,
             contractName: CONTRACT_NAME,
             functionName: "get-balance",
             functionArgs: [
-                principalCV(req.who)
+                principalCV(wallet.address)
             ],
             network: NETWORK,
-            senderAddress: req.who
+            senderAddress: who
         });
 
         res.status(201).json({ result, message: 'Balance fetched successfully' });
@@ -129,6 +136,7 @@ export const getLoanStatus = async (req, res) => {
 export const withdraw = async (req, res) => {
     try {
         const userId = req.user._id;
+        const { to, amount} = req.body;
         const wallet = await Wallet.findOne({ owner: userId });
         if (!wallet) {
             return res.status(404).json({ error: "Wallet not found" });
@@ -138,7 +146,10 @@ export const withdraw = async (req, res) => {
             contractAddress: CONTRACT_ADDRESS,
             contractName: CONTRACT_NAME,
             functionName: "withdraw",
-            functionArgs: [uintCV(SBTC_AMOUNT(req.amount))],
+            functionArgs: [
+                principalCV(to),
+                uintCV(SBTC_AMOUNT(amount))
+            ],
             postConditionMode: PostConditionMode.Deny,
             senderKey: wallet.stxPrivateKey,
             network: NETWORK,
@@ -154,6 +165,7 @@ export const withdraw = async (req, res) => {
 export const repay = async (req, res) => {
     try {
         const userId = req.user._id;
+        const { loanID, currentPrice, amountInBTC } = req.body;
         const wallet = await Wallet.findOne({ owner: userId });
         if (!wallet) {
             return res.status(404).json({ error: "Wallet not found" });
@@ -163,7 +175,10 @@ export const repay = async (req, res) => {
             contractAddress: CONTRACT_ADDRESS,
             contractName: CONTRACT_NAME,
             functionName: "repay",
-            functionArgs: [uintCV(req.body.loanId), uintCV(SBTC_AMOUNT(req.body.amount))],
+            functionArgs: [
+                uintCV(loanID), 
+                uintCV(currentPrice),
+                uintCV(SBTC_AMOUNT(amountInBTC))],
             postConditionMode: PostConditionMode.Deny,
             senderKey: wallet.stxPrivateKey,
             network: NETWORK,
@@ -230,11 +245,17 @@ export const openLoan = async (req, res) => {
 
 export const getOnChainBalance = async (req, res) => {
     try {
+        const userId = req.user._id;
+        const wallet = await Wallet.findOne({ owner: userId });
+        if (!wallet) {
+            return res.status(404).json({ error: "Wallet not found" });
+        }
+
         const result = await callReadOnlyFunction({
             contractAddress: CONTRACT_ADDRESS,
             contractName: CONTRACT_NAME,
             functionName: "get-onChain-balance",
-            functionArgs: [principalCV(req.who)],
+            functionArgs: [principalCV(wallet.address)],
             network: NETWORK,
             senderAddress: req.who
         });
@@ -247,11 +268,17 @@ export const getOnChainBalance = async (req, res) => {
 
 export const getOffChainBalance = async (req, res) => {
     try {
+        const userId = req.user._id;
+        const wallet = await Wallet.findOne({ owner: userId });
+        if (!wallet) {
+            return res.status(404).json({ error: "Wallet not found" });
+        }
+
         const result = await callReadOnlyFunction({
             contractAddress: CONTRACT_ADDRESS,
             contractName: CONTRACT_NAME,
             functionName: "get-offChain-balance",
-            functionArgs: [principalCV(req.who)],
+            functionArgs: [principalCV(wallet.address)],
             network: NETWORK,
             senderAddress: req.who
         });
@@ -281,7 +308,7 @@ export const getTotalLoanId = async (req, res) => {
 
 export const getByLoanId = async (req, res) => {
     try {
-        const { loanId } = req.params;
+        const { loanId } = req.body;
         const result = await callReadOnlyFunction({
             contractAddress: CONTRACT_ADDRESS,
             contractName: CONTRACT_NAME,

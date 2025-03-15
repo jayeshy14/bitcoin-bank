@@ -7,7 +7,7 @@ const router = express.Router();
 router.use(protect);
 
 //contract call routes
-router.post('/deposite', deposit);
+router.post('/deposit', deposit);
 router.post('/issueLoan', issueLoan);
 router.post('/withdraw', withdraw);
 router.post('/repay', repay);

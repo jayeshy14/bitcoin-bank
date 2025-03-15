@@ -12,6 +12,7 @@ import investorRoutes from './routes/investor.js';
 import transactionRoutes from './routes/transactions.js';
 import dashboardRoutes from './routes/dashboard.js';
 import cityRoutes from "./routes/city.js";
+import contractRoutes from "./routes/contract.js";
 
 // Configure environment variables
 dotenv.config();
@@ -35,6 +36,7 @@ const startServer = async () => {
     app.use('/api/transactions', transactionRoutes);
     app.use('/api/dashboard', dashboardRoutes);
     app.use('/api/cities', cityRoutes);
+    app.use('/api/contracts', contractRoutes);
 
     // Start the liquidation monitoring
     scheduleLiquidationMonitoring();
