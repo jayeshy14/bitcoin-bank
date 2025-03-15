@@ -1,32 +1,25 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import axios from 'axios';
+import { motion } from 'framer-motion';
 import { getMyCollateralsApi } from '../../apis/collateralApis';
+import { getMyPendingApplicationsApi } from '../../apis/loanApis';
 
 const Dashboard = () => {
   const { user, logout } = useAuth();
   const [loading, setLoading] = useState(true);
   const [collaterals, setCollaterals] = useState([]);
-  const [borrowedLoans, setBorrowedLoans] = useState([]);
-  const [lendedLoans, setLendedLoans] = useState([]);
+  const [loanApplications, setLoanApplications] = useState([]);
+
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          throw new Error('No token found');
-        }
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        const collaterals = await getMyCollateralsApi();
+        setCollaterals(collaterals);
 
-        // Fetch all necessary data
-        const [collateralsRes, borrowedLoansRes, lendedLoansRes] = await Promise.all([
-          await getMyCollateralsApi(), '', ''
-        ]);
-
-        setCollaterals(collateralsRes);
-        setBorrowedLoans(borrowedLoansRes);
-        setLendedLoans(lendedLoansRes);
+        const loanApplications = await getMyPendingApplicationsApi();
+        setLoanApplications(loanApplications);
       } catch (err) {
         console.error('Error fetching dashboard data:', err);
       } finally {
@@ -64,18 +57,37 @@ const Dashboard = () => {
 
       {/* My unfulfilled Loans*/}
       <section>
-        <h2 className='text-2xl font-semibold mb-4'>Unfulfilled Loans</h2>
-        <div className='grid md:grid-cols-2 lg:grid-cols-3 gap-6'>
-
+        <h2 className='text-2xl font-semibold mb-4'>My Pending Loan Applications</h2>
+        {loanApplications.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          {loanApplications.map((loan) => (
+            <motion.div 
+              key={loan._id} 
+              className="p-6 bg-gray-800 rounded-xl shadow-lg border border-gray-600 transition-transform transform hover:scale-105"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <h3 className="text-2xl font-bold text-yellow-300 mb-2 break-all">Loan ID: {loan._id}</h3>
+              <p className="text-lg text-gray-300"><strong>Amount:</strong> <span className="text-yellow-400">{loan.amount} BTC</span></p>
+              <p className="text-lg text-gray-300"><strong>Interest Rate:</strong> <span className="text-yellow-400">{loan.interestRate}%</span></p>
+              <p className="text-lg text-gray-300"><strong>Risk Factor:</strong> <span className="text-yellow-400">{loan.riskFactor}</span></p>
+              <p className="text-lg text-gray-300"><strong>Term:</strong> <span className="text-yellow-400">{loan.term} months</span></p>
+              <p className="text-lg text-gray-300"><strong>Collateral ID:</strong> <span className="text-yellow-400">{loan.collateral}</span></p>
+              <p className="text-lg font-semibold text-green-400 mt-4">Status: {loan.status}</p>
+            </motion.div>
+          ))}
         </div>
+      ) : (
+        <p className="text-center text-gray-400 text-lg mt-6">No active loan applications available.</p>
+      )}
       </section>
 
       {/* My Borrowed Loans Section */}
-      <section>
+      {/* <section>
         <h2 className="text-2xl font-semibold mb-4">Borrowed Loans</h2>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {borrowedLoans.length > 0 ? (
-            borrowedLoans.map((loan) => (
+          {borrowedLoans?.length > 0 ? (
+            borrowedLoans?.map((loan) => (
               <div key={loan._id} className="p-6 bg-gray-800 rounded-lg shadow-lg">
                 <h3 className="text-xl font-bold">Loan ID: {loan._id}</h3>
                 <p>Amount: ${loan.amount}</p>
@@ -87,10 +99,10 @@ const Dashboard = () => {
             <p>No borrowed loans found.</p>
           )}
         </div>
-      </section>
+      </section> */}
 
       {/* Lended Loans Section */}
-      <section>
+      {/* <section>
         <h2 className="text-2xl font-semibold mb-4">Lended Loans</h2>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {lendedLoans.length > 0 ? (
@@ -106,7 +118,7 @@ const Dashboard = () => {
             <p>No lended loans found.</p>
           )}
         </div>
-      </section>
+      </section> */}
     </div>
   );
 };
