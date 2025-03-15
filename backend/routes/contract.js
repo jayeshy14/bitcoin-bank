@@ -1,6 +1,6 @@
 import express from "express";
-import { protect } from "../middleware/auth";
-import { deposit, issueLoan, repay, withdraw } from "../controllers/contractController";
+import { protect } from "../middleware/auth.js";
+import { closeLoan, deposit, getBalance, getByLoanId, getOffChainBalance, getOnChainBalance, getTotalLoanId, issueLoan, openLoan, repay, withdraw } from "../controllers/contractController.js";
 
 const router = express.Router();
 
