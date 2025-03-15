@@ -9,7 +9,7 @@ const Navbar = () => {
   const navigate = useNavigate();
   const path = location.pathname.replace("/", "");
 
-  const navItem = ["borrow", "lend", "dashboard", "login", "register"];
+  const navItem = ["simulator", "borrow", "lend", "dashboard", "login", "register"];
 
   return (
     <nav className="bg-gray-900 shadow-lg border-b-2 border-slate-500 ">

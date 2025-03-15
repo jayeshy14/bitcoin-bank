@@ -8,6 +8,7 @@ import {
     stringAsciiCV 
 } from "@stacks/transactions";
 import Wallet from "../models/Wallet.js";
+import Loan from "../models/loan.js";
 
 const CONTRACT_ADDRESS = "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM";
 const CONTRACT_NAME = "bank";
@@ -107,7 +108,31 @@ export const issueLoan = async (req, res) => {
         });
 
         const response = await broadcastTransaction(transaction, NETWORK);
-        res.status(201).json({ response, message: 'Loan issued successfully' });
+        if (response.error) {
+            return res.status(400).json({ error: "Transaction failed", message: response.error });
+        }
+        
+        const nextDueDate = Loan.prototype.calculateNextDueDate();
+        
+        const loan = new Loan({
+            userId,
+            loanId: response.txid, // we need to check this
+            borrower,
+            principalBtc: amount,
+            interestRate,
+            loanType,
+            priceAtLoanTime,
+            riskFactor,
+            timeInMonth,
+            collateralType,
+            collateralValue,
+            collateralId,
+            nextDueDate
+        });
+
+        await loan.save();
+
+        res.status(201).json({ response, loan, message: "Loan issued successfully" });
     } catch (e) {
         res.status(500).json({ error: 'Error issuing loan', message: e.message });
     }
@@ -167,8 +192,15 @@ export const repay = async (req, res) => {
         const userId = req.user._id;
         const { loanID, currentPrice, amountInBTC } = req.body;
         const wallet = await Wallet.findOne({ owner: userId });
+
         if (!wallet) {
             return res.status(404).json({ error: "Wallet not found" });
+        }
+
+        const loan = await Loan.findOne({ loanId: loanID, userId });
+
+        if (!loan) {
+            return res.status(404).json({ error: "Loan not found" });
         }
 
         const transaction = await makeContractCall({
@@ -178,18 +210,29 @@ export const repay = async (req, res) => {
             functionArgs: [
                 uintCV(loanID), 
                 uintCV(currentPrice),
-                uintCV(SBTC_AMOUNT(amountInBTC))],
+                uintCV(SBTC_AMOUNT(amountInBTC)) 
+            ],
             postConditionMode: PostConditionMode.Deny,
             senderKey: wallet.stxPrivateKey,
             network: NETWORK,
         });
 
         const response = await broadcastTransaction(transaction, NETWORK);
-        res.status(201).json({ response, message: 'Repayment successful' });
+
+        if (response.error) {
+            return res.status(400).json({ error: "Transaction failed", message: response.error });
+        }
+
+        loan.nextDueDate = loan.calculateNextDueDate();
+        await loan.save();
+
+        res.status(201).json({ response, adjustedAmount, message: "Repayment successful" });
+
     } catch (e) {
-        res.status(500).json({ error: 'Error in repayment', message: e.message });
+        res.status(500).json({ error: "Error in repayment", message: e.message });
     }
 };
+
 
 export const closeLoan = async (req, res) => {
     try {
