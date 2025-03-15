@@ -38,8 +38,8 @@ const Navbar = () => {
               <Menu as="div" className="relative">
                 <MenuButton className="flex items-center bg-blue-600 hover:bg-blue-500 text-white px-4 py-3 rounded-lg transition duration-200">
                   {user.firstName} <ChevronDownIcon className="w-5 h-5 ml-2" />
-                </Menu.Button>
-                <Menu.Items className="absolute right-0 mt-2 w-48 bg-white shadow-lg rounded-lg z-10">
+                </MenuButton>
+                <MenuItems className="absolute right-0 mt-2 w-48 bg-white shadow-lg rounded-lg z-10">
                   <MenuItem>
                     {({ active }) => (
                       <Link

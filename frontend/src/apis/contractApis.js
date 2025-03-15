@@ -97,7 +97,9 @@ export const getTotalLoanIdAPI = async () => {
 
 export const getOffChainBalanceAPI = async () => {
     try {
-        const response = await axios.get(`${API}getOffChainBalance`);
+        const response = await axios.get(`${API}getOffChainBalance`, {
+            headers: {Authorization: `Bearer ${localStorage.getItem("token")}`}
+        });
         return response.data;
     } catch (error) {
         console.error("Get off-chain balance error:", error);
@@ -107,7 +109,9 @@ export const getOffChainBalanceAPI = async () => {
 
 export const getOnChainBalanceAPI = async () => {
     try {
-        const response = await axios.get(`${API}getOnChainBalance`);
+        const response = await axios.get(`${API}getOnChainBalance`, {
+            headers: {Authorization: `Bearer ${localStorage.getItem("token")}`}
+        });
         return response.data;
     } catch (error) {
         console.error("Get on-chain balance error:", error);
@@ -118,7 +122,9 @@ export const getOnChainBalanceAPI = async () => {
 
 export const getBalanceAPI = async () => {
     try {
-        const response = await axios.get(`${API}balance`);
+        const response = await axios.get(`${API}getBalance`, {
+            headers: {Authorization: `Bearer ${localStorage.getItem("token")}`}
+        });
         return response.data;
     } catch (error) {
         console.error("Balance fetch error:", error);

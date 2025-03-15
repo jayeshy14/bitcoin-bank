@@ -4,8 +4,8 @@ import axios from 'axios';
 import { motion } from 'framer-motion';
 import { getMyCollateralsApi } from '../../apis/collateralApis';
 import { getMyPendingApplicationsApi } from '../../apis/loanApis';
-import { getOffChainBalance, getOnChainBalance } from '../../../../backend/controllers/contractController';
-import { getBalanceAPI } from '../../apis/contractApis';
+
+import { getBalanceAPI, getOffChainBalanceAPI, getOnChainBalanceAPI } from '../../apis/contractApis';
 
 const Dashboard = () => {
   const { user, logout } = useAuth();
@@ -14,7 +14,7 @@ const Dashboard = () => {
   const [loanApplications, setLoanApplications] = useState([]);
   const [onChainBalance, setOnChainBalance] = useState(null)
   const [offChainBalance, setOffChainBalance] = useState(null)
-  const [Balance, setBalance] = useState(null)
+  const [balance, setBalance] = useState(null)
 
 
   useEffect(() => {
@@ -33,17 +33,24 @@ const Dashboard = () => {
     };
 
     fetchDashboardData();
-  }, [logout]);
+  }, []);
 
   useEffect(() => {
     const fetchBalance = async () => {
-
       try {
 
-        const getOffChainBalance = await getOffChainBalance();
-        const getOnChainBalance = await getOnChainBalance();
+        const offChainBalance = await getOffChainBalanceAPI();
+        setOffChainBalance(offChainBalance);
+        console.log("Off chain balance: ", offChainBalance);
+
+        const onChainBalance = await getOnChainBalanceAPI();
+        setOnChainBalance(onChainBalance);
+        console.log("On chain balance: ", onChainBalance);
+
         const totalBalance = await getBalanceAPI();
-        console.log("balances: ",getOffChainBalance, getOnChainBalance, totalBalance );
+        setBalance(balance);
+        console.log("Total balance is: ", totalBalance);
+
       } catch (error) {
         console.error("error getting balance, ",error);
       }
@@ -51,7 +58,7 @@ const Dashboard = () => {
     }
 
     fetchBalance();
-  })
+  },[]);
 
   if (loading) return <div>Loading...</div>;
 
