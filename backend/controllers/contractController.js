@@ -7,7 +7,7 @@ import {
     uintCV, 
     stringAsciiCV 
 } from "@stacks/transactions";
-import Wallet from "../models/Wallet";
+import Wallet from "../models/Wallet.js";
 
 const CONTRACT_ADDRESS = "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM";
 const CONTRACT_NAME = "bank";

@@ -1,5 +1,6 @@
 
-const { callSimulate, callCalculateEmi } = require("../sbtc_loan__rust_simulator.node");
+const { callSimulate, callCalculateEmi } = require("../simulatorRustModel/sbtc_loan__rust_simulator_linux.node");
+// const { callSimulate, callCalculateEmi } = require("../simulatorRustModel/sbtc_loan__rust_simulator_mac.node");
 
 const simulate = (principalBtc, priceAtLoanTime, monthlyInterestRate, riskPercentage, loanTimeInMonths) => {
     const result = callSimulate(principalBtc, priceAtLoanTime, monthlyInterestRate, riskPercentage, loanTimeInMonths);
