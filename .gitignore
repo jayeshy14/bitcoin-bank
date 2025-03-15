@@ -3,3 +3,6 @@
 /simulator/sbtc_loan_simulator/node_modules
 backend/.env
 frontend/.env
+simulator/sbtc_loan_simulator/yarn.lock  
+simulator/sbtc_loan_simulator/package-lock.json  
+simulator/sbtc_loan_simulator/package.json  

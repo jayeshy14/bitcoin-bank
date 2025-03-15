@@ -16,6 +16,7 @@ import PrivateRoute from './components/auth/PrivateRoute';
 import ListCollateral from './pages/loans/ListCollateral';
 import LoanApplicationForm from './pages/loans/LoanApplication';
 
+
 function App() {
   return (
     <Router>
@@ -51,7 +52,7 @@ function App() {
               }
             />
             <Route
-              path="/investor/opportunities"
+              path="/lend"
               element={
                 <PrivateRoute>
                   <InvestmentOpportunities />

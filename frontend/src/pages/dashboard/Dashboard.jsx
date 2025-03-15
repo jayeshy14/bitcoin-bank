@@ -62,9 +62,17 @@ const Dashboard = () => {
         </div>
       </section>
 
+      {/* My unfulfilled Loans*/}
+      <section>
+        <h2 className='text-2xl font-semibold mb-4'>Unfulfilled Loans</h2>
+        <div className='grid md:grid-cols-2 lg:grid-cols-3 gap-6'>
+
+        </div>
+      </section>
+
       {/* My Borrowed Loans Section */}
       <section>
-        <h2 className="text-2xl font-semibold mb-4">My Borrowed Loans</h2>
+        <h2 className="text-2xl font-semibold mb-4">Borrowed Loans</h2>
         <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
           {borrowedLoans.length > 0 ? (
             borrowedLoans.map((loan) => (

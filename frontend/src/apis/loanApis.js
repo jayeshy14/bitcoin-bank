@@ -15,4 +15,15 @@ const createLoanApplicationApi = async(formData) => {
     }
 }
 
-export {createLoanApplicationApi}
+const getMyUnfulfilledLoanApplicationsApi = async() => {
+    try {
+        const response = axios.get(`${API}/my-applications`,{
+            headers: {Authorization: `Bearer ${localStorage.getItem("token")}`}
+        });
+        return (await response).data;
+    } catch (error) {
+        console.error(error);
+    }
+}
+
+export {createLoanApplicationApi, getMyUnfulfilledLoanApplicationsApi}
