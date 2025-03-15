@@ -15,14 +15,25 @@ const createLoanApplicationApi = async(formData) => {
     }
 }
 
-const getMyUnfulfilledLoanApplicationsApi = async() => {
+const getMyPendingApplicationsApi = async() => {
     try {
-        const response = axios.get(`${API}/my-applications`,{
+        const response = axios.get(`${API}my-applications`,{
             headers: {Authorization: `Bearer ${localStorage.getItem("token")}`}
         });
         return (await response).data;
     } catch (error) {
         console.error(error);
+    }
+}
+
+const investmentOpportunitiesApi  = async() => {
+    try {
+        const response = axios.get(`${API}investment-opportunities`,{
+            headers: {Authorization: `Bearer ${localStorage.getItem("token")}`}
+        });
+        return (await response).data;
+    } catch (error) {
+        
     }
 }
 
@@ -63,4 +74,4 @@ const simulateEmi = async (SimulateData) => {
 }
 
 
-export {createLoanApplicationApi, getMyUnfulfilledLoanApplicationsApi, calculateEmi, simulateEmi}
+export {createLoanApplicationApi, getMyPendingApplicationsApi, investmentOpportunitiesApi, calculateEmi, simulateEmi}

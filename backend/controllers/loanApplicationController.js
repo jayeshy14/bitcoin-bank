@@ -47,9 +47,22 @@ export const createLoanApplication = async (req, res) => {
   }
 };
 
-export const getMyPendingApplicationsApi =  async(req, res) => {
+export const getMyPendingApplications =  async(req, res) => {
   try {
-    const loanApplications = await LoanApplication.find({borrower: req.user.id, status: pending})
+    const loanApplications = await LoanApplication.find({borrower: req.user.id, status: "pending"})
+    .sort('-createdAt');
+    res.json(loanApplications);
+  } catch (error) {
+    res.status(500).json({
+      error: 'Error fetching pending applications',
+      message: error.message
+    })
+  }
+}
+
+export const getPendingApplications =  async(req, res) => {
+  try {
+    const loanApplications = await LoanApplication.find({status: "pending"})
     .sort('-createdAt');
     res.json(loanApplications);
   } catch (error) {

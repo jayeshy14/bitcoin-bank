@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
-// import { getAllActiveLoanApplicationsApi } from '../../apis/loanApis';
+import { investmentOpportunitiesApi } from '../../apis/loanApis';
 
 const InvestmentOpportunities = () => {
   const [loanApplications, setLoanApplications] = useState([]);
@@ -8,7 +8,7 @@ const InvestmentOpportunities = () => {
   useEffect(() => {
     const fetchLoanApplications = async () => {
       try {
-        const activeLoans = await getAllActiveLoanApplicationsApi();
+        const activeLoans = await investmentOpportunitiesApi();
         setLoanApplications(activeLoans);
       } catch (error) {
         console.error('Error fetching active loan applications:', error);
@@ -36,7 +36,7 @@ const InvestmentOpportunities = () => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
             >
-              <h3 className="text-2xl font-bold text-yellow-300 mb-2">Loan ID: {loan._id}</h3>
+              <h3 className="text-2xl font-bold text-yellow-300 mb-2 break-all">Loan ID: {loan._id}</h3>
               <p className="text-lg text-gray-300"><strong>Amount:</strong> <span className="text-yellow-400">{loan.amount} BTC</span></p>
               <p className="text-lg text-gray-300"><strong>Interest Rate:</strong> <span className="text-yellow-400">{loan.interestRate}%</span></p>
               <p className="text-lg text-gray-300"><strong>Risk Factor:</strong> <span className="text-yellow-400">{loan.riskFactor}</span></p>
