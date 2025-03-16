@@ -5,10 +5,11 @@ import {
   repayLoanAPI, 
   closeLoanAPI, 
   openLoanAPI,
-  withdrawAPI
+  withdrawAPI,
+  getByLoanIdAPI
 } from '../../apis/contractApis';
 import { getBTCvalueInUSD } from '../../apis/collateralApis';
-import { calculateEmi, getMyActiveLoans, getMyClosedLoans } from '../../apis/loanApis';
+import { calculateEmi, getMyClosedLoans } from '../../apis/loanApis';
 
 const MyLoans = () => {
   const [activeLoans, setActiveLoans] = useState([]);
@@ -24,7 +25,7 @@ const MyLoans = () => {
     const fetchData = async () => {
       try {
         // Fetch active loans
-        const myActiveLoans = await getMyActiveLoans();
+        const myActiveLoans = await getByLoanIdAPI();
         setActiveLoans(myActiveLoans);
         console.log("Active loans:", myActiveLoans);
         
@@ -67,7 +68,7 @@ const MyLoans = () => {
       setSuccess(`Successfully repaid loan ${loanId}`);
       
       // Refresh loans list
-      const updatedLoans = await getMyActiveLoans();
+      const updatedLoans = await getByLoanIdAPI();
       setActiveLoans(updatedLoans);
     } catch (err) {
       setError(`Failed to repay loan: ${err}`);
@@ -86,7 +87,7 @@ const MyLoans = () => {
       setSuccess(`Successfully closed loan ${loanId}`);
       
       // Refresh loans lists
-      const updatedActiveLoans = await getMyActiveLoans();
+      const updatedActiveLoans = await getByLoanIdAPI();
       setActiveLoans(updatedActiveLoans);
       
       const updatedClosedLoans = await getMyClosedLoans();
@@ -108,7 +109,7 @@ const MyLoans = () => {
       setSuccess(`Successfully opened loan ${loanId}`);
       
       // Refresh loans lists
-      const updatedActiveLoans = await getMyActiveLoans();
+      const updatedActiveLoans = await getByLoanIdAPI();
       setActiveLoans(updatedActiveLoans);
       
       const updatedClosedLoans = await getMyClosedLoans();

@@ -16,6 +16,8 @@ const Dashboard = () => {
   const [offChainBalance, setOffChainBalance] = useState(null);
   const [totalBalance, setTotalBalance] = useState(null);
 
+  const BTCDECIMAL = 100000000;
+
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
@@ -38,19 +40,17 @@ const Dashboard = () => {
     const fetchBalance = async () => {
       try {
         const offChainBalanceData = await getOffChainBalanceAPI();
-        setOffChainBalance(offChainBalanceData);
-        console.log("offChainBalanceData: ", offChainBalanceData);
+
+        setOffChainBalance(offChainBalanceData.result?.value?.data?.balance.value / BTCDECIMAL);;
         const onChainBalanceData = await getOnChainBalanceAPI();
-        setOnChainBalance(onChainBalanceData);
-        console.log("onChainBalanceData: ", onChainBalanceData);
+        setOnChainBalance(onChainBalanceData.result?.value?.data?.balance.value / BTCDECIMAL);
         const totalBalanceData = await getBalanceAPI();
-        setTotalBalance(totalBalanceData);
-        console.log("totalBalanceData: ", totalBalanceData);
+        setTotalBalance(totalBalanceData.result?.value?.value / BTCDECIMAL);
+        console.log("totalBalance, ", totalBalanceData)
       } catch (error) {
         console.error("error getting balance, ",error);
       }
     }
-
     fetchBalance();
   },[]);
 
