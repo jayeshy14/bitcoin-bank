@@ -67,15 +67,13 @@ METAL_PRICE_API_KEY=your_metal_price_api_key
 4. Set up the smart contract:
 ```bash
 cd contracts
+npm install
 clarinet devnet start
 ```
 
 ```bash
-clarinet deploy
-```
-
-```bash
 node scripts/token-setup.js
+```
 
 ## Running the Application
 
