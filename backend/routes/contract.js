@@ -17,7 +17,7 @@ router.post('/openLoan', openLoan);
 
 
 // contract read-only routes
-router.get("/getByLoanId", getByLoanId);
+router.get("/getByLoanId/:id", getByLoanId);
 router.get("/getTotalLoanId", getTotalLoanId);
 router.get("/getOffChainBalance", getOffChainBalance);
 router.get("/getOnChainBalance", getOnChainBalance);
