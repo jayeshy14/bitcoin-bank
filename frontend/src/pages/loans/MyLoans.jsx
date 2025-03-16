@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion as Motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { 
   repayLoanAPI, 
@@ -19,9 +19,6 @@ const MyLoans = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [processingLoanId, setProcessingLoanId] = useState(null);
-  const [withdrawAmount, setWithdrawAmount] = useState('');
-  const [withdrawAddress, setWithdrawAddress] = useState('');
-  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -63,9 +60,9 @@ const MyLoans = () => {
       const repayData = {
         loanID: loanId,
         currentPrice: btcPrice,
-        amountInBTC: emiData.monthlyEmiBtc
+        amountInBTC: emiData.totalEmiInBtc
       };
-      
+      console.log("Repay data:", repayData);
       await repayLoanAPI(repayData);
       setSuccess(`Successfully repaid loan ${loanId}`);
       
@@ -73,7 +70,7 @@ const MyLoans = () => {
       const updatedLoans = await getMyActiveLoans();
       setActiveLoans(updatedLoans);
     } catch (err) {
-      setError(`Failed to repay loan: ${err.message}`);
+      setError(`Failed to repay loan: ${err}`);
     } finally {
       setProcessingLoanId(null);
     }
@@ -123,28 +120,12 @@ const MyLoans = () => {
     }
   };
 
-  const handleWithdraw = async (e) => {
-    e.preventDefault();
-    setError('');
-    setSuccess('');
-    
-    try {
-      await withdrawAPI(withdrawAddress, withdrawAmount);
-      setSuccess(`Successfully withdrawn ${withdrawAmount} BTC to ${withdrawAddress}`);
-      setShowWithdrawModal(false);
-      setWithdrawAmount('');
-      setWithdrawAddress('');
-    } catch (err) {
-      setError(`Failed to withdraw: ${err.message}`);
-    }
-  };
-
   // Get the loans to display based on the active tab
   const loansToDisplay = showActiveLoans ? activeLoans : closedLoans;
 
   return (
     <div className="w-full px-4 py-8 sm:px-6 lg:px-8">
-      <motion.div
+      <Motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
@@ -187,7 +168,7 @@ const MyLoans = () => {
 
         {/* Error Message */}
         {error && (
-          <motion.div
+          <Motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             className="mb-8 p-4 bg-gradient-to-r from-red-500/20 to-pink-500/20 border border-red-500/50 rounded-xl"
@@ -202,12 +183,12 @@ const MyLoans = () => {
                 <p className="text-sm font-medium text-red-400">{error}</p>
               </div>
             </div>
-          </motion.div>
+          </Motion.div>
         )}
 
         {/* Success Message */}
         {success && (
-          <motion.div
+          <Motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             className="mb-8 p-4 bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/50 rounded-xl"
@@ -222,7 +203,7 @@ const MyLoans = () => {
                 <p className="text-sm font-medium text-green-400">{success}</p>
               </div>
             </div>
-          </motion.div>
+          </Motion.div>
         )}
 
         {/* Main Content */}
@@ -237,7 +218,7 @@ const MyLoans = () => {
             </div>
           </div>
         ) : loansToDisplay.length === 0 ? (
-          <motion.div
+          <Motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-8 text-center border border-gray-700"
@@ -266,11 +247,11 @@ const MyLoans = () => {
                 Apply for a Loan
               </Link>
             )}
-          </motion.div>
+          </Motion.div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {loansToDisplay.map((loan, index) => (
-              <motion.div
+              <Motion.div
                 key={loan._id}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -340,7 +321,7 @@ const MyLoans = () => {
                       </div>
                     </div>
 
-                    {loan.status === 'active' && (
+                    {loan.status === 'open' && (
                       <button
                         onClick={() => handleRepayLoan(loan._id)}
                         disabled={processingLoanId === loan._id}
@@ -351,11 +332,11 @@ const MyLoans = () => {
                     )}
                   </div>
                 </div>
-              </motion.div>
+              </Motion.div>
             ))}
           </div>
         )}
-      </motion.div>
+      </Motion.div>
     </div>
   );
 };

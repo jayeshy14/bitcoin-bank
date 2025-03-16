@@ -68,7 +68,7 @@ const InvestmentOpportunities = () => {
         priceAtLoanTime: Math.round(btcValue)
       };
       
-      await issueLoanAPI(loanPayload);
+      await issueLoanAPI(loanData._id);
       
       // Remove the funded loan from the list
       setLoanApplications(prev => prev.filter(loan => loan._id !== loanData._id));

@@ -10,6 +10,9 @@ import {
 } from "@stacks/transactions";
 import Wallet from "../models/Wallet.js";
 import Loan from "../models/loan.js";
+import LoanApplication from "../models/LoanApplication.js";
+import Collateral from "../models/Collateral.js";
+import { getPropertyValue, getGoldValue, getCryptoLatestPrice } from "../services/valuationService.js";
 
 const CONTRACT_ADDRESS = "ST1PQHQKV0RJXZFY1DGX8MNSNYVE3VGZJSRTPGZGM";
 const CONTRACT_NAME = "bank";
@@ -98,22 +101,53 @@ export const getBalance = async (req, res) => {
 // Loan Issuance Function
 export const issueLoan = async (req, res) => {
     try {
-        const { borrower, amountInBTC, interestRate, loanType, priceAtLoanTime, riskFactor, term, collateralType, collateralValue, collateral } = req.body;
+        const { loanId } = req.body;
+        console.log("loanId: ", loanId);
         const lenderUserId = req.user.id;
-        const borrowerData = await Wallet.findOne({ owner: borrower});
+        console.log("lenderUserId: ", lenderUserId);
+        const loanApplicationData = await LoanApplication.findById(loanId);
+        if (!loanApplicationData) {
+            return res.status(404).json({ error: "Loan not found" });
+        }
+        console.log("loanApplicationData: ", loanApplicationData);
+        const borrowerData = await Wallet.findOne({ owner: loanApplicationData.borrower});
         if (!borrowerData) {
             return res.status(404).json({ error: "Borrower Wallet not found" });
         }
-        
+        // if (typeof loanApplicationData.collateral._id !== "string" || loanApplicationData.collateral._id.length > 50) {
+        //     return res.status(400).json({ error: "Invalid collateralId. Must be an ASCII string with max length of 50." });
+        // }
+
+        // const collateralData = await Collateral.findById(loanApplicationData.collateral._id);
+        // if (!collateralData) {
+        //     return res.status(404).json({ error: "Collateral not found" });
+        // }
+        const collateralType = loanApplicationData.collateral.type === "gold" ? 1001 : 1002;
+        const loanType =  0o1;
+
+
+        let currentValue;
+
+        if (loanApplicationData.collateral.type === 'property') {
+            if (!loanApplicationData.collateral.cityName || !loanApplicationData.collateral.area) {
+              return res.status(400).json({ error: 'City and area are required for property valuation' });
+            }
+            currentValue = await getPropertyValue(loanApplicationData.collateral.cityName, loanApplicationData.collateral.area);
+          } else if (loanApplicationData.collateral.type === 'gold') {
+            if (!loanApplicationData.collateral.goldAmount) {
+              return res.status(400).json({ error: 'Gold amount is required for gold valuation' });
+            }
+            currentValue = await getGoldValue(loanApplicationData.collateral.goldAmount);
+          } else {
+            return res.status(400).json({ error: 'Invalid collateral type' });
+          }
+          currentValue = Math.round(currentValue);
+          console.log("currentValue: ", currentValue);
         const borrowerAddress = borrowerData.address;
-        console.log("add: ", borrowerAddress, "amount", SBTC_AMOUNT(amountInBTC), "interestRate: ", interestRate, "loanType: ", loanType, "priceatLoanTime", priceAtLoanTime, "timeInMonth: ",term, "collateralType: ", collateralType, "colValue: ",collateralValue);
+        console.log("add: ", borrowerAddress, "amount", SBTC_AMOUNT(loanApplicationData.amount), "interestRate: ", loanApplicationData.interestRate, "loanType: ", loanType, "priceatLoanTime", loanApplicationData.priceAtLoanTime, "timeInMonth: ",loanApplicationData.timeInMonth, "collateralType: ", collateralType, "colValue: ",loanApplicationData.collateralValue);
         const Lenderwallet = await Wallet.findOne({ owner: lenderUserId });
         if (!Lenderwallet) {
             return res.status(404).json({ error: "Wallet not found" });
-        }
-
-        if (typeof collateral !== "string" || collateral.length > 50) {
-            return res.status(400).json({ error: "Invalid collateralId. Must be an ASCII string with max length of 50." });
         }
 
         const transaction = await makeContractCall({
@@ -122,15 +156,15 @@ export const issueLoan = async (req, res) => {
             functionName: "loan",
             functionArgs: [
                 principalCV(borrowerAddress),
-                uintCV(SBTC_AMOUNT(amountInBTC)),
-                uintCV(interestRate),
+                uintCV(SBTC_AMOUNT(loanApplicationData.amount)),
+                uintCV(loanApplicationData.interestRate),
                 uintCV(loanType),
-                uintCV(priceAtLoanTime),
-                uintCV(riskFactor),
-                uintCV(term),
+                uintCV(loanApplicationData.priceAtLoanTime),
+                uintCV(loanApplicationData.riskFactor),
+                uintCV(loanApplicationData.timeInMonth),
                 uintCV(collateralType),
-                uintCV(collateralValue),
-                stringAsciiCV(collateral) 
+                uintCV(currentValue),
+                stringAsciiCV(loanApplicationData.collateral._id) 
             ],
             postConditionMode: PostConditionMode.Deny,
             senderKey: Lenderwallet.stxPrivateKey,
@@ -169,6 +203,10 @@ export const issueLoan = async (req, res) => {
             nextDueDate: new Date(),
             status: "open",
         });
+
+        //update loanApplicationData status to "fulfilled"
+        loanApplicationData.status = "fulfilled";
+        await loanApplicationData.save();
 
         loan.nextDueDate = loan.calculateNextDueDate();
         await loan.save();
@@ -233,26 +271,28 @@ export const repay = async (req, res) => {
     try {
         const userId = req.user.id;
         const { loanID, currentPrice, amountInBTC } = req.body;
+        console.log("Repay data:", req.body);
         const wallet = await Wallet.findOne({ owner: userId });
 
         if (!wallet) {
             return res.status(404).json({ error: "Wallet not found" });
         }
 
-        const loan = await Loan.findOne({ loanId: loanID });
+        const loan = await Loan.findById(loanID);
 
         if (!loan) {
             return res.status(404).json({ error: "Loan not found" });
         }
+
 
         const transaction = await makeContractCall({
             contractAddress: CONTRACT_ADDRESS,
             contractName: CONTRACT_NAME,
             functionName: "repay",
             functionArgs: [
-                uintCV(loanID), 
+                uintCV(loan.loanId), 
                 uintCV(currentPrice),
-                uintCV(SBTC_AMOUNT(amountInBTC)) 
+                uintCV(amountInBTC) 
             ],
             postConditionMode: PostConditionMode.Deny,
             senderKey: wallet.stxPrivateKey,
@@ -433,9 +473,8 @@ export const getTotalLoanId = async (req, res) => {
 
 export const getByLoanId = async (req, res) => {
     try {
-        const userId = req.user.id;
-        const wallet = await Wallet.findOne({ owner: userId });
         const loan = await Loan.findById(req.params.id);
+        const wallet = await Wallet.findOne({ user: req.user.id });
 
         if (!wallet) {
             return res.status(404).json({ error: "Wallet not found" });
@@ -456,8 +495,19 @@ export const getByLoanId = async (req, res) => {
         console.log("function parameters: ", functionParameters);
         const result = await callReadOnlyFunction(functionParameters);
         console.log("result: ", result);
-        res.status(200).json({ result, message: "Loan details fetched successfully" });
+        
+        // Handle BigInt serialization
+        const serializedResult = JSON.parse(JSON.stringify(result, (key, value) => {
+            // Convert BigInt to String to avoid serialization error
+            if (typeof value === 'bigint') {
+                return value.toString();
+            }
+            return value;
+        }));
+        
+        res.status(200).json({ result: serializedResult, message: "Loan details fetched successfully" });
     } catch (e) {
+        console.error("Error in getByLoanId:", e);
         res.status(500).json({ error: "Error fetching loan details", message: e.message });
     }
 };

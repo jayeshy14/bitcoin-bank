@@ -17,10 +17,10 @@ export const depositAPI = async (amount) => {
 
 
 //borrower, amount, interestRate, loanType, priceAtLoanTime, riskFactor, timeInMonth, collateralType, collateralValue, collateralId
-export const issueLoanAPI = async (LoanData) => {
+export const issueLoanAPI = async (loanId) => {
     try {
-        console.log("Sending Loan data: ", LoanData);
-        const response = await axios.post(`${API}issueLoan`, LoanData);
+        console.log("Sending Loan data: ", loanId);
+        const response = await axios.post(`${API}issueLoan`, {loanId});
         return response.data;
     } catch (error) {
         console.error("Issue loan error:", error);
