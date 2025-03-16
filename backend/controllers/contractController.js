@@ -102,119 +102,158 @@ export const getBalance = async (req, res) => {
 export const issueLoan = async (req, res) => {
     try {
         const { loanId } = req.body;
-        console.log("loanId: ", loanId);
         const lenderUserId = req.user.id;
-        console.log("lenderUserId: ", lenderUserId);
-        const loanApplicationData = await LoanApplication.findById(loanId);
+
+        if (!loanId) {
+            return res.status(400).json({ error: "Loan ID is required" });
+        }
+
+        // Find the loan application and populate collateral and borrower data
+        const loanApplicationData = await LoanApplication.findById(loanId)
+            .populate('collateral')
+            .populate('borrower');
+
         if (!loanApplicationData) {
-            return res.status(404).json({ error: "Loan not found" });
+            return res.status(404).json({ error: "Loan application not found" });
         }
-        console.log("loanApplicationData: ", loanApplicationData);
-        const borrowerData = await Wallet.findOne({ owner: loanApplicationData.borrower});
+
+        // Extract data from the populated documents
+        const collateralData = loanApplicationData.collateral;
+        const borrowerData = loanApplicationData.borrower;
+
+        if (!collateralData) {
+            return res.status(404).json({ error: "Collateral not found" });
+        }
+
         if (!borrowerData) {
-            return res.status(404).json({ error: "Borrower Wallet not found" });
-        }
-        // if (typeof loanApplicationData.collateral._id !== "string" || loanApplicationData.collateral._id.length > 50) {
-        //     return res.status(400).json({ error: "Invalid collateralId. Must be an ASCII string with max length of 50." });
-        // }
-
-        // const collateralData = await Collateral.findById(loanApplicationData.collateral._id);
-        // if (!collateralData) {
-        //     return res.status(404).json({ error: "Collateral not found" });
-        // }
-        const collateralType = loanApplicationData.collateral.type === "gold" ? 1001 : 1002;
-        const loanType =  0o1;
-
-
-        let currentValue;
-
-        if (loanApplicationData.collateral.type === 'property') {
-            if (!loanApplicationData.collateral.cityName || !loanApplicationData.collateral.area) {
-              return res.status(400).json({ error: 'City and area are required for property valuation' });
-            }
-            currentValue = await getPropertyValue(loanApplicationData.collateral.cityName, loanApplicationData.collateral.area);
-          } else if (loanApplicationData.collateral.type === 'gold') {
-            if (!loanApplicationData.collateral.goldAmount) {
-              return res.status(400).json({ error: 'Gold amount is required for gold valuation' });
-            }
-            currentValue = await getGoldValue(loanApplicationData.collateral.goldAmount);
-          } else {
-            return res.status(400).json({ error: 'Invalid collateral type' });
-          }
-          currentValue = Math.round(currentValue);
-          console.log("currentValue: ", currentValue);
-        const borrowerAddress = borrowerData.address;
-        console.log("add: ", borrowerAddress, "amount", SBTC_AMOUNT(loanApplicationData.amount), "interestRate: ", loanApplicationData.interestRate, "loanType: ", loanType, "priceatLoanTime", loanApplicationData.priceAtLoanTime, "timeInMonth: ",loanApplicationData.timeInMonth, "collateralType: ", collateralType, "colValue: ",loanApplicationData.collateralValue);
-        const Lenderwallet = await Wallet.findOne({ owner: lenderUserId });
-        if (!Lenderwallet) {
-            return res.status(404).json({ error: "Wallet not found" });
+            return res.status(404).json({ error: "Borrower not found" });
         }
 
+        // Find borrower's wallet
+        const borrowerWallet = await Wallet.findOne({ owner: borrowerData._id });
+        if (!borrowerWallet) {
+            return res.status(404).json({ error: "Borrower wallet not found" });
+        }
+        
+        // Set collateral type and loan type
+        const collateralType = collateralData.type === "gold" ? 1001 : 1002;
+        const loanType = 0o1; // Changed from octal 0o1 to decimal 1
+        console.log("collateralType: ", collateralType);
+        console.log("loanType: ", loanType);
+
+        // Get current BTC price for priceAtLoanTime if not provided
+        const currentBtcPrice = await getCryptoLatestPrice()        
+        // Ensure we have a valid collateral value - convert to integer
+        const currentValue = Math.floor(collateralData.value) || 1000; // Fallback value if NaN
+        console.log("currentValue: ", currentValue);
+        
+        // Get borrower address
+        const borrowerAddress = borrowerWallet.address;
+        
+        // Get term (timeInMonth) from the loan application
+        const term = Math.floor(loanApplicationData.term) || 12; // Fallback to 12 months if undefined
+        
+        // Get risk factor with fallback - convert to integer
+        const riskFactor = Math.floor(loanApplicationData.riskFactor) || 5; // Fallback to 5% if undefined
+        
+        // Convert amount to integer
+        const amount = Math.floor(loanApplicationData.amount);
+        
+        // Convert interest rate to integer
+        const interestRate = Math.floor(loanApplicationData.interestRate);
+        
+        // Convert BTC price to integer
+        const priceAtLoanTime = Math.floor(currentBtcPrice);
+        
+        console.log("add: ", borrowerAddress, 
+                   "amount", SBTC_AMOUNT(amount), 
+                   "interestRate: ", interestRate, 
+                   "loanType: ", loanType, 
+                   "priceAtLoanTime", priceAtLoanTime, 
+                   "term: ", term, 
+                   "riskFactor: ", riskFactor,
+                   "collateralType: ", collateralType, 
+                   "colValue: ", currentValue);
+        
+        // Find lender's wallet
+        const lenderWallet = await Wallet.findOne({ owner: lenderUserId });
+        if (!lenderWallet) {
+            return res.status(404).json({ error: "Lender wallet not found" });
+        }
+
+        // Make contract call
         const transaction = await makeContractCall({
             contractAddress: CONTRACT_ADDRESS,
             contractName: CONTRACT_NAME,
-            functionName: "loan",
+            functionName: "issue-loan",
             functionArgs: [
                 principalCV(borrowerAddress),
-                uintCV(SBTC_AMOUNT(loanApplicationData.amount)),
-                uintCV(loanApplicationData.interestRate),
+                uintCV(SBTC_AMOUNT(amount)),
+                uintCV(interestRate),
                 uintCV(loanType),
-                uintCV(loanApplicationData.priceAtLoanTime),
-                uintCV(loanApplicationData.riskFactor),
-                uintCV(loanApplicationData.timeInMonth),
+                uintCV(priceAtLoanTime),
+                uintCV(term),
+                uintCV(riskFactor),
                 uintCV(collateralType),
                 uintCV(currentValue),
-                stringAsciiCV(loanApplicationData.collateral._id) 
+                stringAsciiCV(collateralData._id.toString())
             ],
             postConditionMode: PostConditionMode.Deny,
-            senderKey: Lenderwallet.stxPrivateKey,
+            senderKey: lenderWallet.stxPrivateKey,
             network: NETWORK,
         });
 
+        // Broadcast transaction
         const response = await broadcastTransaction(transaction, NETWORK);
 
         if (response.error) {
             return res.status(400).json({ error: "Transaction failed", message: response.error });
         }
 
-        const result = await callReadOnlyFunction({
+        // Get total loan ID
+        const totalLoanIdResult = await callReadOnlyFunction({
             contractAddress: CONTRACT_ADDRESS,
             contractName: CONTRACT_NAME,
             functionName: "get-total-loan-Id",
             functionArgs: [],
             network: NETWORK,
-            senderAddress: Lenderwallet.address,
+            senderAddress: lenderWallet.address,
         });
 
+        // Create loan in database
         const loan = new Loan({
-            lenderUserId,
-            borrowerUserId: borrower,
-            loanId: Number(result.value),
-            borrower,
-            principalBtc: amountInBTC,
-            interestRate,
-            loanType,
-            priceAtLoanTime,
-            riskFactor,
+            lenderUserId: lenderUserId,
+            borrowerUserId: borrowerData._id,
+            loanId: totalLoanIdResult.value,
+            borrower: borrowerAddress,
+            principalBtc: amount,
+            interestRate: interestRate,
+            loanType: loanType,
+            priceAtLoanTime: priceAtLoanTime,
+            riskFactor: riskFactor,
             timeInMonth: term,
-            collateralType,
-            collateralValue,
-            collateralId: collateral,
-            nextDueDate: new Date(),
-            status: "open",
+            collateralType: collateralType,
+            collateralValue: currentValue,
+            collateralId: collateralData._id.toString(),
+            nextDueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+            status: "open"
         });
 
-        //update loanApplicationData status to "fulfilled"
+        await loan.save();
+
+        // Update loan application status
         loanApplicationData.status = "fulfilled";
         await loanApplicationData.save();
 
-        loan.nextDueDate = loan.calculateNextDueDate();
-        await loan.save();
+        // Update collateral status
+        collateralData.status = "locked";
+        collateralData.loanAssociation = loan._id;
+        await collateralData.save();
 
         res.status(201).json({ response, loan, message: "Loan issued successfully" });
     } catch (e) {
-        console.log("error in loan: ", e);
-        res.status(500).json({ error: 'Error issuing loan', message: e.message });
+        console.error("error in loan: ", e);
+        res.status(500).json({ error: "Error issuing loan", message: e.message });
     }
 };
 
@@ -308,7 +347,11 @@ export const repay = async (req, res) => {
         loan.nextDueDate = loan.calculateNextDueDate();
         await loan.save();
 
-        res.status(201).json({ response, adjustedAmount, message: "Repayment successful" });
+        res.status(201).json({ 
+            response, 
+            amountPaid: amountInBTC,
+            message: "Repayment successful" 
+        });
 
     } catch (e) {
         res.status(500).json({ error: "Error in repayment", message: e.message });
@@ -356,7 +399,10 @@ export const openLoan = async (req, res) => {
             return res.status(404).json({ error: "Wallet not found" });
         }
 
-        const loan = await Loan.findOne({ loanId: loanID });
+        const loan = await Loan.findOne({ loanId });
+        if (!loan) {
+            return res.status(404).json({ error: "Loan not found" });
+        }
 
         const transaction = await makeContractCall({
             contractAddress: CONTRACT_ADDRESS,
@@ -449,7 +495,6 @@ export const getOffChainBalance = async (req, res) => {
 export const getTotalLoanId = async (req, res) => {
     try {
         const userId = req.user.id;
-        const { loanID, currentPrice, amountInBTC } = req.body;
         const wallet = await Wallet.findOne({ owner: userId });
 
         if (!wallet) {
