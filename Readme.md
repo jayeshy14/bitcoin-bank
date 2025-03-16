@@ -72,6 +72,8 @@ clarinet devnet start
 ```
 
 ```bash
+clarinet deployments apply --devnet
+ //(agree for both deployments)
 node scripts/token-setup.js
 ```
 
