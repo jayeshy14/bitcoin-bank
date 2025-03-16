@@ -192,7 +192,7 @@
           ;; Ensure caller is the borrower
           (asserts! (is-eq tx-sender borrower) (err BANK_ERR_NOT_BORROWER))
           ;; Ensure loan is not closed
-          (asserts! (is-eq loanStatus u1) (err BANK-LOAN-STATUS_CLOSED))
+          (asserts! (is-eq loanStatus u2001) (err BANK-LOAN-STATUS_CLOSED))
           ;; Check borrower balance
           (asserts! (>= borrowerOff (to-int repaymentTotalBTC)) (err BANK_ERR_INSUFFICIENT-FUNDS))
           

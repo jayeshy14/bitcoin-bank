@@ -157,7 +157,7 @@ export const issueLoan = async (req, res) => {
         const riskFactor = Math.floor(loanApplicationData.riskFactor) || 5; // Fallback to 5% if undefined
         
         // Convert amount to integer
-        const amount = Math.floor(loanApplicationData.amount);
+        const amountInBTC = loanApplicationData.amount / currentBtcPrice;
         
         // Convert interest rate to integer
         const interestRate = Math.floor(loanApplicationData.interestRate);
@@ -166,7 +166,7 @@ export const issueLoan = async (req, res) => {
         const priceAtLoanTime = Math.floor(currentBtcPrice);
         
         console.log("add: ", borrowerAddress, 
-                   "amount", SBTC_AMOUNT(amount), 
+                   "amount", SBTC_AMOUNT(amountInBTC), 
                    "interestRate: ", interestRate, 
                    "loanType: ", loanType, 
                    "priceAtLoanTime", priceAtLoanTime, 
@@ -185,10 +185,10 @@ export const issueLoan = async (req, res) => {
         const transaction = await makeContractCall({
             contractAddress: CONTRACT_ADDRESS,
             contractName: CONTRACT_NAME,
-            functionName: "issue-loan",
+            functionName: "loan",
             functionArgs: [
                 principalCV(borrowerAddress),
-                uintCV(SBTC_AMOUNT(amount)),
+                uintCV(SBTC_AMOUNT(amountInBTC)),
                 uintCV(interestRate),
                 uintCV(loanType),
                 uintCV(priceAtLoanTime),
@@ -205,6 +205,7 @@ export const issueLoan = async (req, res) => {
 
         // Broadcast transaction
         const response = await broadcastTransaction(transaction, NETWORK);
+        console.log(response, "response");
 
         if (response.error) {
             return res.status(400).json({ error: "Transaction failed", message: response.error });
@@ -224,9 +225,9 @@ export const issueLoan = async (req, res) => {
         const loan = new Loan({
             lenderUserId: lenderUserId,
             borrowerUserId: borrowerData._id,
-            loanId: totalLoanIdResult.value,
+            loanId: Number(totalLoanIdResult.value),
             borrower: borrowerAddress,
-            principalBtc: amount,
+            principalBtc: amountInBTC,
             interestRate: interestRate,
             loanType: loanType,
             priceAtLoanTime: priceAtLoanTime,
@@ -330,8 +331,8 @@ export const repay = async (req, res) => {
             functionName: "repay",
             functionArgs: [
                 uintCV(loan.loanId), 
-                uintCV(currentPrice),
-                uintCV(amountInBTC) 
+                uintCV(Math.round(currentPrice)),
+                uintCV(SBTC_AMOUNT(amountInBTC)) 
             ],
             postConditionMode: PostConditionMode.Deny,
             senderKey: wallet.stxPrivateKey,
@@ -339,6 +340,8 @@ export const repay = async (req, res) => {
         });
 
         const response = await broadcastTransaction(transaction, NETWORK);
+
+        console.log("repay response: ", response);
 
         if (response.error) {
             return res.status(400).json({ error: "Transaction failed", message: response.error });
@@ -518,39 +521,50 @@ export const getTotalLoanId = async (req, res) => {
 
 export const getByLoanId = async (req, res) => {
     try {
-        const loan = await Loan.findById(req.params.id);
-        const wallet = await Wallet.findOne({ user: req.user.id });
-
+        console.log("user id", req.user.id);
+        // Find all open loans for the logged-in user (borrower)
+        const loans = await Loan.find({ borrowerUserId: req.user.id, status: "open" }).exec();
+        if (!loans || loans.length === 0) {
+            return res.status(404).json({ error: "Loan not found" });
+        }
+        
+        // Find the wallet for the logged-in user
+        const wallet = await Wallet.findOne({ owner: req.user.id });
         if (!wallet) {
             return res.status(404).json({ error: "Wallet not found" });
         }
-
-        if(!loan) {
-            return res.status(404).json({ error: "Loan not found" });
-        }
-
-        const functionParameters = {
-            contractAddress: CONTRACT_ADDRESS,
-            contractName: CONTRACT_NAME,
-            functionName: "get-by-loan-Id",
-            functionArgs: [uintCV(loan.loanId)],
-            network: NETWORK,
-            senderAddress: wallet.address,
-        }
-        console.log("function parameters: ", functionParameters);
-        const result = await callReadOnlyFunction(functionParameters);
-        console.log("result: ", result);
         
-        // Handle BigInt serialization
-        const serializedResult = JSON.parse(JSON.stringify(result, (key, value) => {
-            // Convert BigInt to String to avoid serialization error
-            if (typeof value === 'bigint') {
-                return value.toString();
-            }
-            return value;
-        }));
+        // Extract loan IDs from the loans array
+        const loanIds = loans.map(loan => loan.loanId);
         
-        res.status(200).json({ result: serializedResult, message: "Loan details fetched successfully" });
+        // For each loanId, call the smart contract's read-only function
+        const results = await Promise.all(
+            loanIds.map(async (id) => {
+                const functionParameters = {
+                    contractAddress: CONTRACT_ADDRESS,
+                    contractName: CONTRACT_NAME,
+                    functionName: "get-by-loan-Id",
+                    functionArgs: [uintCV(id)],
+                    network: NETWORK,
+                    senderAddress: wallet.address,
+                };
+                console.log("Fetching details for loanId:", id);
+                const result = await callReadOnlyFunction(functionParameters);
+                return result.value.data;
+            })
+        );
+        
+        // Serialize the results to handle BigInt values
+        const serializedResults = results.map(result =>
+            JSON.parse(JSON.stringify(result, (key, value) => {
+                if (typeof value === "bigint") {
+                    return value.toString();
+                }
+                return value;
+            }))
+        );
+        
+        res.status(200).json({ result: serializedResults, message: "Loan details fetched successfully" });
     } catch (e) {
         console.error("Error in getByLoanId:", e);
         res.status(500).json({ error: "Error fetching loan details", message: e.message });

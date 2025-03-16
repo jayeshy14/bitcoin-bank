@@ -1,5 +1,5 @@
 import Collateral from '../models/Collateral.js';
-import LoanApplication from '../models/loanApplication.js';
+import LoanApplication from '../models/LoanApplication.js';
 import Wallet from '../models/Wallet.js';
 import Loan from '../models/loan.js';
 
@@ -95,7 +95,8 @@ export const getUserWalletAddress = async(req, res) => {
 
 export const getMyActiveLoans = async(req, res) => {
   try {
-    const loans = await Loan.find({borrower: req.user.id, status: "open"});
+    const loans = await Loan.find({borrowerUserId: req.user.id, status: "open"});
+    console.log("loans: ", loans);
     res.json(loans);
   } catch (error) {
     res.status(500).json({error: "Error fetching active loans", message: error.message});
@@ -104,7 +105,7 @@ export const getMyActiveLoans = async(req, res) => {
 
 export const getMyClosedLoans = async(req, res) => {
   try {
-    const loans = await Loan.find({borrower: req.user.id, status: "closed"});
+    const loans = await Loan.find({borrowerUserId: req.user.id, status: "closed"});
     res.json(loans);
   } catch (error) {
     res.status(500).json({error: "Error fetching closed loans", message: error.message});
