@@ -44,6 +44,10 @@ const loanSchema = new mongoose.Schema({
         type: Number,
         required: true
     },
+    timeInMonthsCompleted: { 
+        type: Number,
+        required: true
+    },
     collateralType: { 
         type: Number,
         required: true

@@ -44,9 +44,9 @@ const investmentOpportunitiesApi  = async() => {
 // riskPercentage,
 // loanTimeInMonths, 
 // currentPrice
-const calculateEmi = async (loanId) => {
+const calculateEmi = async (databaseId) => {
     try {
-        const response = await axios.post(`${API}calculate_emi/${loanId}`);
+        const response = await axios.post(`${API}calculate_emi/${databaseId}`);
         return response.data;
     } catch (error) {
         console.error("Error calculating EMI:", error);

@@ -7,6 +7,7 @@ const { getEmi } = pkg;
 export const getEmiData = async (req, res) => {
     try {
         const loan = await Loan.findById(req.params.id);
+        console.log("loan: ", loan);
         if (!loan) {
             return res.status(404).json({ error: "Loan not found" });
         }
