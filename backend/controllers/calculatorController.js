@@ -6,7 +6,7 @@ const { getEmi } = pkg;
 
 export const getEmiData = async (req, res) => {
     try {
-        const loan = await Loan.findOne({ loanId: req.body.loanId }).exec();
+        const loan = await Loan.findById(req.params.id);
         if (!loan) {
             return res.status(404).json({ error: "Loan not found" });
         }
@@ -14,9 +14,9 @@ export const getEmiData = async (req, res) => {
         const { 
             principalBtc,
             priceAtLoanTime,
-            monthlyInterestRate,
-            riskPercentage,
-            loanTimeInMonths, 
+            interestRate,
+            riskFactor,
+            timeInMonths, 
         } = loan;
 
         const currentPrice = await getCryptoLatestPrice();
@@ -24,9 +24,9 @@ export const getEmiData = async (req, res) => {
         const emiResult = getEmi(
             principalBtc, 
             priceAtLoanTime, 
-            monthlyInterestRate, 
-            riskPercentage, 
-            loanTimeInMonths, 
+            interestRate, 
+            riskFactor, 
+            timeInMonths, 
             currentPrice
         );
 

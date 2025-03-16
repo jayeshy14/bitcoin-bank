@@ -77,11 +77,24 @@ export const openLoanAPI = async (loanId) => {
 
 export const getByLoanIdAPI = async (loanId) => {
     try {
-        const response = await axios.get(`${API}getByLoanId`, { loanId });
+        console.log(`Fetching loan details for ID: ${loanId}`);
+        const response = await axios.get(`${API}getByLoanId/${loanId}`, {
+            headers: {Authorization: `Bearer ${localStorage.getItem("token")}`}
+        });
+        console.log("Loan details response:", response.data);
         return response.data;
     } catch (error) {
         console.error("Get loan by ID error:", error);
-        throw error.response?.data?.error || "An error occurred";
+        if (error.response) {
+            console.error("Error status:", error.response.status);
+            console.error("Error data:", error.response.data);
+            console.error("Error headers:", error.response.headers);
+        } else if (error.request) {
+            console.error("Error request:", error.request);
+        } else {
+            console.error("Error message:", error.message);
+        }
+        throw error.response?.data?.error || error.message || "An error occurred";
     }
 };
 

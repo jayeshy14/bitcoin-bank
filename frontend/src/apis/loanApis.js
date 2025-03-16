@@ -33,7 +33,7 @@ const investmentOpportunitiesApi  = async() => {
         });
         return (await response).data;
     } catch (error) {
-        
+        console.error(error);
     }
 }
 
@@ -46,7 +46,7 @@ const investmentOpportunitiesApi  = async() => {
 // currentPrice
 const calculateEmi = async (loanId) => {
     try {
-        const response = await axios.post(`${API}calculate_emi`, { loanId });
+        const response = await axios.post(`${API}calculate_emi/${loanId}`);
         return response.data;
     } catch (error) {
         console.error("Error calculating EMI:", error);
@@ -83,4 +83,26 @@ const getUserWallet = async() => {
     }
 }
 
-export {createLoanApplicationApi, getMyPendingApplicationsApi, investmentOpportunitiesApi, calculateEmi, simulateEmi, getUserWallet}
+const getMyActiveLoans = async() => {
+    try {
+        const response = await axios.get(`${API}my-active-loans`, {
+            headers: {Authorization: `Bearer ${localStorage.getItem("token")}`}
+        })
+        return response.data;
+    } catch (error) {
+        console.error("Error getting active loans: ", error);
+    }
+}
+
+const getMyClosedLoans = async() => {
+    try {
+        const response = await axios.get(`${API}my-closed-loans`, {
+            headers: {Authorization: `Bearer ${localStorage.getItem("token")}`}
+        })
+        return response.data;
+    } catch (error) {
+        console.error("Error getting closed loans: ", error);
+    }
+}
+
+export {createLoanApplicationApi, getMyPendingApplicationsApi, investmentOpportunitiesApi, calculateEmi, simulateEmi, getUserWallet, getMyActiveLoans, getMyClosedLoans}

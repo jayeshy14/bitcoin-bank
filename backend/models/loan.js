@@ -64,7 +64,8 @@ const loanSchema = new mongoose.Schema({
     status: {
         type: String,
         required: true,
-        maxlength: 50
+        maxlength: 50,
+        enum: ["open", "closed"]
     },
     createdAt: { 
         type: Date,

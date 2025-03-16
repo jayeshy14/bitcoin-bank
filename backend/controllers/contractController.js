@@ -152,27 +152,25 @@ export const issueLoan = async (req, res) => {
             senderAddress: Lenderwallet.address,
         });
 
-        
-        const nextDueDate = Loan.prototype.calculateNextDueDate();
-        
         const loan = new Loan({
             lenderUserId,
             borrowerUserId: borrower,
             loanId: Number(result.value),
             borrower,
-            principalBtc: amount,
+            principalBtc: amountInBTC,
             interestRate,
             loanType,
             priceAtLoanTime,
             riskFactor,
-            timeInMonth,
+            timeInMonth: term,
             collateralType,
             collateralValue,
             collateralId: collateral,
-            nextDueDate,
+            nextDueDate: new Date(),
             status: "open",
         });
 
+        loan.nextDueDate = loan.calculateNextDueDate();
         await loan.save();
 
         res.status(201).json({ response, loan, message: "Loan issued successfully" });
@@ -403,7 +401,7 @@ export const getOffChainBalance = async (req, res) => {
 
         res.status(201).json({ result:formattedResult, message: 'Off-chain balance retrieved successfully' });
     } catch (e) {
-        console.log("error fetching offchain Balance", error);
+        console.log("error fetching offchain Balance", e);
         res.status(500).json({ error: 'Error fetching off-chain balance', message: e.message });
     }
 };
@@ -436,23 +434,28 @@ export const getTotalLoanId = async (req, res) => {
 export const getByLoanId = async (req, res) => {
     try {
         const userId = req.user.id;
-        const { loanID, currentPrice, amountInBTC } = req.body;
         const wallet = await Wallet.findOne({ owner: userId });
+        const loan = await Loan.findById(req.params.id);
 
         if (!wallet) {
             return res.status(404).json({ error: "Wallet not found" });
         }
 
-        const { loanId } = req.body;
-        const result = await callReadOnlyFunction({
+        if(!loan) {
+            return res.status(404).json({ error: "Loan not found" });
+        }
+
+        const functionParameters = {
             contractAddress: CONTRACT_ADDRESS,
             contractName: CONTRACT_NAME,
             functionName: "get-by-loan-Id",
-            functionArgs: [uintCV(loanId)],
+            functionArgs: [uintCV(loan.loanId)],
             network: NETWORK,
             senderAddress: wallet.address,
-        });
-
+        }
+        console.log("function parameters: ", functionParameters);
+        const result = await callReadOnlyFunction(functionParameters);
+        console.log("result: ", result);
         res.status(200).json({ result, message: "Loan details fetched successfully" });
     } catch (e) {
         res.status(500).json({ error: "Error fetching loan details", message: e.message });
