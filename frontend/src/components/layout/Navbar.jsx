@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion as Motion, AnimatePresence } from 'framer-motion';
 
 const Navbar = () => {
   const { user, logout } = useAuth();
@@ -14,8 +14,10 @@ const Navbar = () => {
   // Navigation items
   const navItems = [
     { name: "Dashboard", path: "/dashboard", authRequired: true },
+    { name: "My Loans", path: "/loans/my-loans", authRequired: true },
     { name: "Borrow", path: "/borrow", authRequired: true },
     { name: "Lend", path: "/lend", authRequired: true },
+    { name: "Collateral", path: "/collateral", authRequired: true },
     { name: "Simulator", path: "/simulator", authRequired: false },
   ];
 
@@ -67,7 +69,7 @@ const Navbar = () => {
       <div className="max-w-full px-4 sm:px-6 lg:px-8 mx-auto">
         <div className="flex items-center justify-between h-16 md:h-20">
           {/* Logo */}
-          <motion.div 
+          <Motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             className="flex items-center"
@@ -83,7 +85,7 @@ const Navbar = () => {
                 Bitcoin Loan Bank
               </h1>
             </div>
-          </motion.div>
+          </Motion.div>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-1">
@@ -101,7 +103,7 @@ const Navbar = () => {
                     }`}
                   >
                     {location.pathname === item.path && (
-                      <motion.span
+                      <Motion.span
                         layoutId="navbar-indicator"
                         className="absolute inset-0 rounded-lg bg-gradient-to-r from-blue-600/40 to-purple-600/40 -z-10"
                         transition={{ type: 'spring', duration: 0.6 }}
@@ -137,7 +139,7 @@ const Navbar = () => {
                 {/* User Dropdown Menu */}
                 <AnimatePresence>
                   {userMenuOpen && (
-                    <motion.div
+                    <Motion.div
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 10 }}
@@ -179,7 +181,7 @@ const Navbar = () => {
                           Logout
                         </button>
                       </div>
-                    </motion.div>
+                    </Motion.div>
                   )}
                 </AnimatePresence>
               </div>
@@ -247,7 +249,7 @@ const Navbar = () => {
       {/* Mobile Menu */}
       <AnimatePresence>
         {isOpen && (
-          <motion.div
+          <Motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
@@ -300,14 +302,14 @@ const Navbar = () => {
                 </button>
               )}
             </div>
-          </motion.div>
+          </Motion.div>
         )}
       </AnimatePresence>
 
       {/* Mobile User Menu */}
       <AnimatePresence>
         {userMenuOpen && (
-          <motion.div
+          <Motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
@@ -350,7 +352,7 @@ const Navbar = () => {
                 Logout
               </button>
             </div>
-          </motion.div>
+          </Motion.div>
         )}
       </AnimatePresence>
     </nav>

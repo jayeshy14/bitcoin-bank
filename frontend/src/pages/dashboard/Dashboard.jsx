@@ -150,28 +150,57 @@ const Dashboard = () => {
         className="mb-8"
       >
         <h2 className="text-2xl font-semibold mb-6 text-gray-100 px-2">Quick Actions</h2>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 lg:gap-6">
-          {[
-            { title: "List Collateral", icon: "📋", desc: "Use assets as security", path: "/collateral", color: "from-sky-800 to-blue-900" },
-            { title: "Apply for Loan", icon: "💰", desc: "Get BTC financing", path: "/borrow", color: "from-emerald-800 to-green-900" },
-            { title: "Invest", icon: "📈", desc: "Fund loan requests", path: "/lend", color: "from-purple-800 to-indigo-900" },
-            { title: "Deposit BTC", icon: "🪙", desc: "Add to your wallet", path: "/deposit", color: "from-amber-700 to-yellow-900" }
-          ].map((action, i) => (
-            <motion.div
-              key={i}
-              className={`relative overflow-hidden bg-gradient-to-br ${action.color} rounded-xl cursor-pointer h-full`}
-              whileHover={{ scale: 1.03, y: -4 }}
-              whileTap={{ scale: 0.97 }}
-              onClick={() => navigate(action.path)}
-            >
-              <div className="absolute bottom-0 right-0 w-20 h-20 opacity-10 text-4xl flex items-center justify-center">{action.icon}</div>
-              <div className="p-5 relative z-10">
-                <div className="text-2xl mb-3">{action.icon}</div>
-                <h3 className="text-base font-semibold text-white mb-2">{action.title}</h3>
-                <p className="text-xs text-gray-300">{action.desc}</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <Link
+            to="/deposit"
+            className="bg-gradient-to-br from-blue-800 to-blue-900 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-200 border border-blue-700"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-semibold text-white mb-2">Deposit</h3>
+                <p className="text-blue-200">Add funds to your account</p>
               </div>
-            </motion.div>
-          ))}
+              <div className="bg-blue-700 p-3 rounded-full">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+              </div>
+            </div>
+          </Link>
+
+          <Link
+            to="/loans/my-loans"
+            className="bg-gradient-to-br from-purple-800 to-purple-900 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-200 border border-purple-700"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-semibold text-white mb-2">My Loans</h3>
+                <p className="text-purple-200">Manage your active loans</p>
+              </div>
+              <div className="bg-purple-700 p-3 rounded-full">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+              </div>
+            </div>
+          </Link>
+
+          <Link
+            to="/borrow"
+            className="bg-gradient-to-br from-green-800 to-green-900 rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-200 border border-green-700"
+          >
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-xl font-semibold text-white mb-2">Borrow</h3>
+                <p className="text-green-200">Apply for a new loan</p>
+              </div>
+              <div className="bg-green-700 p-3 rounded-full">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+            </div>
+          </Link>
         </div>
       </motion.section>
 
