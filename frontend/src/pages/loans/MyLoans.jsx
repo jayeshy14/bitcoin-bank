@@ -5,34 +5,47 @@ import {
   repayLoanAPI, 
   closeLoanAPI, 
   openLoanAPI,
-  withdrawAPI,
   getByLoanIdAPI
 } from '../../apis/contractApis';
 import { getBTCvalueInUSD } from '../../apis/collateralApis';
 import { calculateEmi, getMyClosedLoans } from '../../apis/loanApis';
 
 const MyLoans = () => {
-  const [activeLoans, setActiveLoans] = useState([]);
-  const [closedLoans, setClosedLoans] = useState([]);
+  const [activeLoans, setActiveLoans] = useState({ borrowed: [], lent: [] });
+  const [closedLoans, setClosedLoans] = useState({ borrowed: [], lent: [] });
   const [showActiveLoans, setShowActiveLoans] = useState(true);
+  const [showLentLoans, setShowLentLoans] = useState(false);
   const [btcPrice, setBtcPrice] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [processingLoanId, setProcessingLoanId] = useState(null);
 
+  // Add status code constants
+  const LOAN_STATUS = {
+    CLOSED: 2001,
+    OPEN: 2002
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       try {
         // Fetch active loans
-        const myActiveLoans = await getByLoanIdAPI();
-        setActiveLoans(myActiveLoans);
-        console.log("Active loans:", myActiveLoans);
+        const loansResponse = await getByLoanIdAPI();
         
-        // Fetch closed loans
-        const myClosedLoans = await getMyClosedLoans();
-        setClosedLoans(myClosedLoans);
-        console.log("Closed loans:", myClosedLoans);
+        // Separate active and closed loans for both borrowed and lent
+        const activeLoans = {
+          borrowed: loansResponse.result.borrowed.filter(loan => loan.status === LOAN_STATUS.OPEN) || [],
+          lent: loansResponse.result.lent.filter(loan => loan.status === LOAN_STATUS.OPEN) || []
+        };
+        setActiveLoans(activeLoans);
+        
+        // Set closed loans from the same response
+        const closedLoans = {
+          borrowed: loansResponse.result.borrowed.filter(loan => loan.status === LOAN_STATUS.CLOSED) || [],
+          lent: loansResponse.result.lent.filter(loan => loan.status === LOAN_STATUS.CLOSED) || []
+        };
+        setClosedLoans(closedLoans);
         
         // Fetch BTC price
         const price = await getBTCvalueInUSD();
@@ -48,28 +61,28 @@ const MyLoans = () => {
     fetchData();
   }, []);
 
-  const handleRepayLoan = async (loanId) => {
-    setProcessingLoanId(loanId);
+  const handleRepayLoan = async (loan) => {
+    setProcessingLoanId(loan.databaseId);
     setError('');
     setSuccess('');
     
     try {
-      // First get the EMI calculation
-      const emiData = await calculateEmi(loanId);
+      // First get the EMI calculation using contract loan ID
+      const emiData = await calculateEmi(loan.databaseId);
       console.log("EMI data:", emiData);
       
       const repayData = {
-        loanID: loanId,
+        loanID: loan.databaseId, // Use database ID for database operations
         currentPrice: btcPrice,
         amountInBTC: emiData.totalEmiInBtc
       };
       console.log("Repay data:", repayData);
       await repayLoanAPI(repayData);
-      setSuccess(`Successfully repaid loan ${loanId}`);
+      setSuccess(`Successfully repaid loan ${loan.databaseId}`);
       
       // Refresh loans list
       const updatedLoans = await getByLoanIdAPI();
-      setActiveLoans(updatedLoans);
+      setActiveLoans(updatedLoans.result || []);
     } catch (err) {
       setError(`Failed to repay loan: ${err}`);
     } finally {
@@ -88,10 +101,10 @@ const MyLoans = () => {
       
       // Refresh loans lists
       const updatedActiveLoans = await getByLoanIdAPI();
-      setActiveLoans(updatedActiveLoans);
+      setActiveLoans(updatedActiveLoans.result || []);
       
       const updatedClosedLoans = await getMyClosedLoans();
-      setClosedLoans(updatedClosedLoans);
+      setClosedLoans(updatedClosedLoans || []);
     } catch (err) {
       setError(`Failed to close loan: ${err.message}`);
     } finally {
@@ -110,10 +123,10 @@ const MyLoans = () => {
       
       // Refresh loans lists
       const updatedActiveLoans = await getByLoanIdAPI();
-      setActiveLoans(updatedActiveLoans);
+      setActiveLoans(updatedActiveLoans.result || []);
       
       const updatedClosedLoans = await getMyClosedLoans();
-      setClosedLoans(updatedClosedLoans);
+      setClosedLoans(updatedClosedLoans || []);
     } catch (err) {
       setError(`Failed to open loan: ${err.message}`);
     } finally {
@@ -121,8 +134,117 @@ const MyLoans = () => {
     }
   };
 
-  // Get the loans to display based on the active tab
-  const loansToDisplay = showActiveLoans ? activeLoans : closedLoans;
+  // Get the loans to display based on active/closed and borrowed/lent selection
+  const getLoansToDisplay = () => {
+    const loansSet = showActiveLoans ? activeLoans : closedLoans;
+    return showLentLoans ? loansSet.lent : loansSet.borrowed;
+  };
+
+  // Update the loan card rendering to use the new data structure
+  const renderLoanCard = (loan, index) => (
+    <Motion.div
+      key={loan.databaseId}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3, delay: index * 0.1 }}
+      className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl shadow-xl overflow-hidden border border-gray-700"
+    >
+      <div className="p-6">
+        <div className="flex justify-between items-start mb-4">
+          <div>
+            <h3 className="text-lg font-semibold text-white">
+              {showLentLoans ? 'Loan to' : 'Loan from'} #{loan.contractLoanId}
+            </h3>
+            <Link 
+              to={`/loans/${loan.databaseId}`}
+              className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
+            >
+              View Details
+            </Link>
+          </div>
+          <div className="flex items-center space-x-2">
+            {loan.status === LOAN_STATUS.OPEN && (
+              <button
+                onClick={() => handleCloseLoan(loan.databaseId)}
+                disabled={processingLoanId === loan.databaseId}
+                className="p-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+              >
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            )}
+            {loan.status === LOAN_STATUS.CLOSED && (
+              <button
+                onClick={() => handleOpenLoan(loan.databaseId)}
+                disabled={processingLoanId === loan.databaseId}
+                className="p-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
+              >
+                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                </svg>
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="space-y-4">
+          {/* Loan Amount */}
+          <div className="bg-gray-700/50 p-4 rounded-lg">
+            <div className="flex justify-between items-baseline">
+              <span className="text-gray-400">Principal Amount:</span>
+              <div className="text-right">
+                <div className="text-lg font-bold text-white">{loan.amountInBTC.toFixed(8)} BTC</div>
+                <div className="text-sm text-gray-400">
+                  ${loan.amountInUSD.toFixed(2)}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Repayment Amount */}
+          <div className="bg-gray-700/50 p-4 rounded-lg">
+            <div className="flex justify-between items-baseline">
+              <span className="text-gray-400">Total Repaid:</span>
+              <div className="text-right">
+                <div className="text-lg font-bold text-white">{loan.totalRepaymentInBTC.toFixed(8)} BTC</div>
+                <div className="text-sm text-gray-400">
+                  ${loan.totalRepaymentInUSD.toFixed(2)}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Loan Details Grid */}
+          <div className="grid grid-cols-3 gap-4">
+            <div className="bg-gray-700/50 p-3 rounded-lg">
+              <div className="text-xs text-gray-400">Interest Rate</div>
+              <div className="text-white font-medium">{loan.interestRate}%</div>
+            </div>
+            <div className="bg-gray-700/50 p-3 rounded-lg">
+              <div className="text-xs text-gray-400">Risk Factor</div>
+              <div className="text-white font-medium">{loan.riskFactor}%</div>
+            </div>
+            <div className="bg-gray-700/50 p-3 rounded-lg">
+              <div className="text-xs text-gray-400">Term</div>
+              <div className="text-white font-medium">{loan.timeInMonth} months</div>
+            </div>
+          </div>
+
+          {/* Repay Button - Only show for borrowed loans */}
+          {loan.status === LOAN_STATUS.OPEN && !showLentLoans && (
+            <button
+              onClick={() => handleRepayLoan(loan)}
+              disabled={processingLoanId === loan.databaseId}
+              className="w-full py-2 px-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white rounded-lg transition-colors"
+            >
+              {processingLoanId === loan.databaseId ? 'Processing...' : 'Make Payment'}
+            </button>
+          )}
+        </div>
+      </div>
+    </Motion.div>
+  );
 
   return (
     <div className="w-full px-4 py-8 sm:px-6 lg:px-8">
@@ -143,28 +265,55 @@ const MyLoans = () => {
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex border-b border-gray-700 mb-6">
-          <button
-            className={`px-4 py-2 font-medium ${
-              showActiveLoans
-                ? 'text-blue-400 border-b-2 border-blue-400'
-                : 'text-gray-400 hover:text-gray-300'
-            }`}
-            onClick={() => setShowActiveLoans(true)}
-          >
-            Active Loans ({activeLoans.length})
-          </button>
-          <button
-            className={`px-4 py-2 font-medium ${
-              !showActiveLoans
-                ? 'text-blue-400 border-b-2 border-blue-400'
-                : 'text-gray-400 hover:text-gray-300'
-            }`}
-            onClick={() => setShowActiveLoans(false)}
-          >
-            Closed Loans ({closedLoans.length})
-          </button>
+        {/* Updated Tabs */}
+        <div className="flex flex-col space-y-4 mb-6">
+          {/* Active/Closed Toggle */}
+          <div className="flex border-b border-gray-700">
+            <button
+              className={`px-4 py-2 font-medium ${
+                showActiveLoans
+                  ? 'text-blue-400 border-b-2 border-blue-400'
+                  : 'text-gray-400 hover:text-gray-300'
+              }`}
+              onClick={() => setShowActiveLoans(true)}
+            >
+              Active Loans ({activeLoans.borrowed.length + activeLoans.lent.length})
+            </button>
+            <button
+              className={`px-4 py-2 font-medium ${
+                !showActiveLoans
+                  ? 'text-blue-400 border-b-2 border-blue-400'
+                  : 'text-gray-400 hover:text-gray-300'
+              }`}
+              onClick={() => setShowActiveLoans(false)}
+            >
+              Closed Loans ({closedLoans.borrowed.length + closedLoans.lent.length})
+            </button>
+          </div>
+
+          {/* Borrowed/Lent Toggle */}
+          <div className="flex border-b border-gray-700">
+            <button
+              className={`px-4 py-2 font-medium ${
+                !showLentLoans
+                  ? 'text-purple-400 border-b-2 border-purple-400'
+                  : 'text-gray-400 hover:text-gray-300'
+              }`}
+              onClick={() => setShowLentLoans(false)}
+            >
+              Borrowed Loans ({showActiveLoans ? activeLoans.borrowed.length : closedLoans.borrowed.length})
+            </button>
+            <button
+              className={`px-4 py-2 font-medium ${
+                showLentLoans
+                  ? 'text-purple-400 border-b-2 border-purple-400'
+                  : 'text-gray-400 hover:text-gray-300'
+              }`}
+              onClick={() => setShowLentLoans(true)}
+            >
+              Lent Loans ({showActiveLoans ? activeLoans.lent.length : closedLoans.lent.length})
+            </button>
+          </div>
         </div>
 
         {/* Error Message */}
@@ -218,7 +367,7 @@ const MyLoans = () => {
               </div>
             </div>
           </div>
-        ) : loansToDisplay.length === 0 ? (
+        ) : getLoansToDisplay().length === 0 ? (
           <Motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -231,13 +380,15 @@ const MyLoans = () => {
                 </svg>
               </div>
             </div>
-            <h3 className="text-xl font-medium text-gray-200 mb-2">No {showActiveLoans ? 'Active' : 'Closed'} Loans</h3>
+            <h3 className="text-xl font-medium text-gray-200 mb-2">
+              No {showActiveLoans ? 'Active' : 'Closed'} {showLentLoans ? 'Lent' : 'Borrowed'} Loans
+            </h3>
             <p className="text-gray-400 mb-6 max-w-md mx-auto">
-              {showActiveLoans
-                ? "You don't have any active loans at the moment. Apply for a loan to get started."
-                : "You don't have any closed loans in your history."}
+              {showLentLoans
+                ? "You haven't lent any Bitcoin yet. Check out investment opportunities to start lending."
+                : "You don't have any active loans at the moment. Apply for a loan to get started."}
             </p>
-            {showActiveLoans && (
+            {!showLentLoans && (
               <Link
                 to="/borrow"
                 className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
@@ -248,93 +399,21 @@ const MyLoans = () => {
                 Apply for a Loan
               </Link>
             )}
+            {showLentLoans && (
+              <Link
+                to="/lend"
+                className="inline-flex items-center px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                </svg>
+                View Investment Opportunities
+              </Link>
+            )}
           </Motion.div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {loansToDisplay.map((loan, index) => (
-              <Motion.div
-                key={loan._id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: index * 0.1 }}
-                className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl shadow-xl overflow-hidden border border-gray-700"
-              >
-                <div className="p-6">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h3 className="text-lg font-semibold text-white">Loan #{loan._id.substring(0, 8)}</h3>
-                      <Link 
-                        to={`/loans/${loan._id}`}
-                        className="text-xs text-blue-400 hover:text-blue-300 transition-colors"
-                      >
-                        View Details
-                      </Link>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      {loan.status === 'active' && (
-                        <button
-                          onClick={() => handleCloseLoan(loan._id)}
-                          disabled={processingLoanId === loan._id}
-                          className="p-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
-                        >
-                          <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
-                      )}
-                      {loan.status === 'closed' && (
-                        <button
-                          onClick={() => handleOpenLoan(loan._id)}
-                          disabled={processingLoanId === loan._id}
-                          className="p-2 bg-green-600 hover:bg-green-700 rounded-lg transition-colors"
-                        >
-                          <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
-                          </svg>
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="bg-gray-700/50 p-4 rounded-lg">
-                      <div className="flex justify-between items-baseline">
-                        <span className="text-gray-400">Amount:</span>
-                        <div className="text-right">
-                          <div className="text-lg font-bold text-white">{loan.principalBtc} BTC</div>
-                          {btcPrice && (
-                            <div className="text-sm text-gray-400">
-                              ${(loan.principalBtc * btcPrice).toFixed(2)}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div className="bg-gray-700/50 p-3 rounded-lg">
-                        <div className="text-xs text-gray-400">Interest Rate</div>
-                        <div className="text-white font-medium">{loan.interestRate}%</div>
-                      </div>
-                      <div className="bg-gray-700/50 p-3 rounded-lg">
-                        <div className="text-xs text-gray-400">Term</div>
-                        <div className="text-white font-medium">{loan.timeInMonth} months</div>
-                      </div>
-                    </div>
-
-                    {loan.status === 'open' && (
-                      <button
-                        onClick={() => handleRepayLoan(loan._id)}
-                        disabled={processingLoanId === loan._id}
-                        className="w-full py-2 px-4 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white rounded-lg transition-colors"
-                      >
-                        {processingLoanId === loan._id ? 'Processing...' : 'Make Payment'}
-                      </button>
-                    )}
-                  </div>
-                </div>
-              </Motion.div>
-            ))}
+            {getLoansToDisplay().map((loan, index) => renderLoanCard(loan, index))}
           </div>
         )}
       </Motion.div>

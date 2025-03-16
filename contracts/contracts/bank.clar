@@ -192,7 +192,7 @@
           ;; Ensure caller is the borrower
           (asserts! (is-eq tx-sender borrower) (err BANK_ERR_NOT_BORROWER))
           ;; Ensure loan is not closed
-          (asserts! (is-eq loanStatus u2001) (err BANK-LOAN-STATUS_CLOSED))
+          (asserts! (is-eq loanStatus u2002) (err BANK-LOAN-STATUS_CLOSED))
           ;; Check borrower balance
           (asserts! (>= borrowerOff (to-int repaymentTotalBTC)) (err BANK_ERR_INSUFFICIENT-FUNDS))
           
@@ -226,7 +226,7 @@
         ;; Ensure caller is the lender
         (asserts! (is-eq tx-sender lender) (err BANK_ERR_NOT_LENDER))
         ;; Ensure loan is open
-        (asserts! (is-eq loanStatus u1) (err BANK-LOAN-STATUS_CLOSED))
+        (asserts! (is-eq loanStatus u2002) (err BANK-LOAN-STATUS_CLOSED))
         ;; Close the loan
         (map-set BANK_loan-details { loan_ID: loanID }
           (merge some-loan-data { status: u0 }))
@@ -248,7 +248,7 @@
         ;; Ensure caller is the lender
         (asserts! (is-eq tx-sender lender) (err BANK_ERR_NOT_LENDER))
         ;; Ensure loan is closed
-        (asserts! (is-eq loanStatus u0) (err BANK-LOAN-STATUS_OPEN))
+        (asserts! (is-eq loanStatus u2001) (err BANK-LOAN-STATUS_OPEN))
         ;; Open the loan
         (map-set BANK_loan-details { loan_ID: loanID }
           (merge some-loan-data { status: u1 }))

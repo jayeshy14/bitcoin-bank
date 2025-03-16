@@ -192,8 +192,8 @@ export const issueLoan = async (req, res) => {
                 uintCV(interestRate),
                 uintCV(loanType),
                 uintCV(priceAtLoanTime),
-                uintCV(term),
                 uintCV(riskFactor),
+                uintCV(term),
                 uintCV(collateralType),
                 uintCV(currentValue),
                 stringAsciiCV(collateralData._id.toString())
@@ -221,7 +221,7 @@ export const issueLoan = async (req, res) => {
             senderAddress: lenderWallet.address,
         });
 
-        // Create loan in database
+        // Create loan in database with timeInMonthsCompleted initialized to 0
         const loan = new Loan({
             lenderUserId: lenderUserId,
             borrowerUserId: borrowerData._id,
@@ -233,6 +233,7 @@ export const issueLoan = async (req, res) => {
             priceAtLoanTime: priceAtLoanTime,
             riskFactor: riskFactor,
             timeInMonth: term,
+            timeInMonthsCompleted: 0, // Initialize completed months to 0
             collateralType: collateralType,
             collateralValue: currentValue,
             collateralId: collateralData._id.toString(),
@@ -312,10 +313,10 @@ export const repay = async (req, res) => {
         const userId = req.user.id;
         const { loanID, currentPrice, amountInBTC } = req.body;
         console.log("Repay data:", req.body);
-        const wallet = await Wallet.findOne({ owner: userId });
+        const borrowerWallet = await Wallet.findOne({ owner: userId });
 
-        if (!wallet) {
-            return res.status(404).json({ error: "Wallet not found" });
+        if (!borrowerWallet) {
+            return res.status(404).json({ error: "Borrower wallet not found" });
         }
 
         const loan = await Loan.findById(loanID);
@@ -324,7 +325,7 @@ export const repay = async (req, res) => {
             return res.status(404).json({ error: "Loan not found" });
         }
 
-
+        // Make the repayment transaction
         const transaction = await makeContractCall({
             contractAddress: CONTRACT_ADDRESS,
             contractName: CONTRACT_NAME,
@@ -335,7 +336,7 @@ export const repay = async (req, res) => {
                 uintCV(SBTC_AMOUNT(amountInBTC)) 
             ],
             postConditionMode: PostConditionMode.Deny,
-            senderKey: wallet.stxPrivateKey,
+            senderKey: borrowerWallet.stxPrivateKey,
             network: NETWORK,
         });
 
@@ -347,16 +348,65 @@ export const repay = async (req, res) => {
             return res.status(400).json({ error: "Transaction failed", message: response.error });
         }
 
-        loan.nextDueDate = loan.calculateNextDueDate();
-        await loan.save();
+        // Increment the completed months
+        loan.timeInMonthsCompleted = (loan.timeInMonthsCompleted || 0) + 1;
 
-        res.status(201).json({ 
-            response, 
-            amountPaid: amountInBTC,
-            message: "Repayment successful" 
-        });
+        // Check if all EMIs are paid
+        if (loan.timeInMonthsCompleted >= loan.timeInMonth) {
+            // Get lender's wallet for closing the loan
+            const lenderWallet = await Wallet.findOne({ owner: loan.lenderUserId });
+            if (!lenderWallet) {
+                return res.status(404).json({ error: "Lender wallet not found" });
+            }
+
+            // Close the loan automatically using lender's wallet
+            const closeTransaction = await makeContractCall({
+                contractAddress: CONTRACT_ADDRESS,
+                contractName: CONTRACT_NAME,
+                functionName: "close-loan",
+                functionArgs: [uintCV(loan.loanId)],
+                postConditionMode: PostConditionMode.Deny,
+                senderKey: lenderWallet.stxPrivateKey, // Using lender's key
+                network: NETWORK,
+            });
+
+            await broadcastTransaction(closeTransaction, NETWORK);
+
+            // Update loan status in database
+            loan.status = "closed";
+            
+            // Find and update associated collateral
+            const collateral = await Collateral.findById(loan.collateralId);
+            if (collateral) {
+                collateral.status = "unlocked";
+                collateral.loanAssociation = null;
+                await collateral.save();
+            }
+
+            await loan.save();
+
+            return res.status(201).json({ 
+                response, 
+                amountPaid: amountInBTC,
+                message: "Final repayment successful. Loan has been closed automatically.",
+                loanClosed: true
+            });
+        } else {
+            // Regular repayment - update next due date
+            loan.nextDueDate = loan.calculateNextDueDate();
+            await loan.save();
+
+            res.status(201).json({ 
+                response, 
+                amountPaid: amountInBTC,
+                message: "Repayment successful",
+                monthsCompleted: loan.timeInMonthsCompleted,
+                monthsTotal: loan.timeInMonth
+            });
+        }
 
     } catch (e) {
+        console.error("Error in repayment:", e);
         res.status(500).json({ error: "Error in repayment", message: e.message });
     }
 };
@@ -521,50 +571,82 @@ export const getTotalLoanId = async (req, res) => {
 
 export const getByLoanId = async (req, res) => {
     try {
-        console.log("user id", req.user.id);
-        // Find all open loans for the logged-in user (borrower)
-        const loans = await Loan.find({ borrowerUserId: req.user.id, status: "open" }).exec();
-        if (!loans || loans.length === 0) {
-            return res.status(404).json({ error: "Loan not found" });
+        // Get both borrowed and lent loans
+        const borrowedLoans = await Loan.find({ borrowerUserId: req.user.id }).exec();
+        const lentLoans = await Loan.find({ lenderUserId: req.user.id }).exec();
+        
+        // Combine both types of loans
+        const allLoans = [...borrowedLoans, ...lentLoans];
+        
+        if (!allLoans || allLoans.length === 0) {
+            return res.status(404).json({ error: "No loans found" });
         }
         
-        // Find the wallet for the logged-in user
         const wallet = await Wallet.findOne({ owner: req.user.id });
         if (!wallet) {
             return res.status(404).json({ error: "Wallet not found" });
         }
         
-        // Extract loan IDs from the loans array
-        const loanIds = loans.map(loan => loan.loanId);
-        
-        // For each loanId, call the smart contract's read-only function
         const results = await Promise.all(
-            loanIds.map(async (id) => {
-                const functionParameters = {
-                    contractAddress: CONTRACT_ADDRESS,
-                    contractName: CONTRACT_NAME,
-                    functionName: "get-by-loan-Id",
-                    functionArgs: [uintCV(id)],
-                    network: NETWORK,
-                    senderAddress: wallet.address,
-                };
-                console.log("Fetching details for loanId:", id);
-                const result = await callReadOnlyFunction(functionParameters);
-                return result.value.data;
+            allLoans.map(async (loan) => {
+                try {
+                    const result = await callReadOnlyFunction({
+                        contractAddress: CONTRACT_ADDRESS,
+                        contractName: CONTRACT_NAME,
+                        functionName: "get-by-loan-Id",
+                        functionArgs: [uintCV(loan.loanId)],
+                        network: NETWORK,
+                        senderAddress: wallet.address,
+                    });
+
+                    // Extract and transform the data
+                    const loanData = result?.value?.data;
+                    if (!loanData) return null;
+
+                    return {
+                        // Include both IDs and loan type
+                        contractLoanId: loan.loanId,
+                        databaseId: loan._id.toString(),
+                        isLender: loan.lenderUserId.toString() === req.user.id,
+                        
+                        // Rest of the loan data
+                        amountInUSD: Number(loanData.amountInUSD.value),
+                        amountInBTC: Number(loanData.amountInsBTC.value) / (10 ** DECIMAL),
+                        borrower: loanData.borrower.address.hash160,
+                        collateralId: loanData['collateral-id'].data,
+                        collateralType: Number(loanData['collateral-type'].value),
+                        collateralValue: Number(loanData['collateral-value'].value),
+                        interestRate: Number(loanData.interestRate.value),
+                        lender: loanData.lender.address.hash160,
+                        loanType: Number(loanData.loanType.value),
+                        priceAtLoanTime: Number(loanData.priceAtLoanTime.value),
+                        riskFactor: Number(loanData.riskFactor.value),
+                        status: Number(loanData.status.value),
+                        timeInMonth: Number(loanData.timeInMonth.value),
+                        totalRepaymentInBTC: Number(loanData.totalRepayementInsBTC.value) / (10 ** DECIMAL),
+                        totalRepaymentInUSD: Number(loanData.totalRepaymentInUSD.value)
+                    };
+                } catch (error) {
+                    console.error(`Error fetching data for loan ${loan.loanId}:`, error);
+                    return null;
+                }
             })
         );
         
-        // Serialize the results to handle BigInt values
-        const serializedResults = results.map(result =>
-            JSON.parse(JSON.stringify(result, (key, value) => {
-                if (typeof value === "bigint") {
-                    return value.toString();
-                }
-                return value;
-            }))
-        );
+        // Filter out any null results
+        const serializedResults = results.filter(result => result !== null);
         
-        res.status(200).json({ result: serializedResults, message: "Loan details fetched successfully" });
+        // Separate borrowed and lent loans
+        const borrowedResults = serializedResults.filter(loan => !loan.isLender);
+        const lentResults = serializedResults.filter(loan => loan.isLender);
+        
+        res.status(200).json({ 
+            result: {
+                borrowed: borrowedResults,
+                lent: lentResults
+            },
+            message: "Loan details fetched successfully" 
+        });
     } catch (e) {
         console.error("Error in getByLoanId:", e);
         res.status(500).json({ error: "Error fetching loan details", message: e.message });

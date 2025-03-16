@@ -331,7 +331,7 @@ const Dashboard = () => {
                         <p className="text-xs text-gray-400">ID: {loan._id.substring(0, 8)}...</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-lg md:text-xl font-bold text-white">{loan.amount} BTC</p>
+                        <p className="text-lg md:text-xl font-bold text-white">{loan.amount} USD</p>
                         <p className="text-xs text-gray-400">Interest: {loan.interestRate}%</p>
                       </div>
                     </div>
