@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion as Motion } from 'framer-motion';
 import { investmentOpportunitiesApi } from '../../apis/loanApis';
 import { getBTCvalueInUSD, getCollateralDetailsApi } from '../../apis/collateralApis';
 import { issueLoanAPI } from '../../apis/contractApis';
@@ -56,17 +56,8 @@ const InvestmentOpportunities = () => {
         throw new Error('Could not retrieve collateral details');
       }
       
-      const collateralType = collateralDetail.type === "gold" ? 1001 : 1002;
-      const amountInBTC = loanData.amount / btcValue;
-      
-      const loanPayload = {
-        ...loanData,
-        collateralType,
-        collateralValue: Math.round(collateralDetail.value),
-        amountInBTC,
-        loanType: 0o1,
-        priceAtLoanTime: Math.round(btcValue)
-      };
+      // Log collateral details for debugging
+      console.log('Funding loan with collateral:', collateralDetail);
       
       await issueLoanAPI(loanData._id);
       
@@ -117,7 +108,7 @@ const InvestmentOpportunities = () => {
 
   return (
     <div className="w-full px-4 py-8 sm:px-6 lg:px-8">
-      <motion.div
+      <Motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
@@ -143,7 +134,7 @@ const InvestmentOpportunities = () => {
 
         {/* Success Message */}
         {success && (
-          <motion.div
+          <Motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             className="mb-8 p-4 bg-gradient-to-r from-green-500/20 to-emerald-500/20 border border-green-500/50 rounded-xl"
@@ -158,12 +149,12 @@ const InvestmentOpportunities = () => {
                 <p className="text-sm font-medium text-green-400">{success}</p>
               </div>
             </div>
-          </motion.div>
+          </Motion.div>
         )}
 
         {/* Error Message */}
         {error && (
-          <motion.div
+          <Motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             className="mb-8 p-4 bg-gradient-to-r from-red-500/20 to-pink-500/20 border border-red-500/50 rounded-xl"
@@ -178,7 +169,7 @@ const InvestmentOpportunities = () => {
                 <p className="text-sm font-medium text-red-400">{error}</p>
               </div>
             </div>
-          </motion.div>
+          </Motion.div>
         )}
 
         {/* Main Content */}
@@ -196,7 +187,7 @@ const InvestmentOpportunities = () => {
           ) : loanApplications.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {loanApplications.map((loan, index) => (
-            <motion.div 
+            <Motion.div 
               key={loan._id} 
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -270,7 +261,7 @@ const InvestmentOpportunities = () => {
                     </div>
                     
                     {/* Fund Button */}
-                    <motion.button
+                    <Motion.button
                       whileHover={{ scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => handleFundLoan(loan)}
@@ -288,13 +279,13 @@ const InvestmentOpportunities = () => {
                       ) : (
                         "Fund This Loan"
                       )}
-                    </motion.button>
+                    </Motion.button>
                   </div>
-            </motion.div>
+            </Motion.div>
           ))}
         </div>
       ) : (
-            <motion.div
+            <Motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className="bg-gradient-to-br from-gray-800 to-gray-900 rounded-xl p-8 text-center border border-gray-700"
@@ -310,12 +301,12 @@ const InvestmentOpportunities = () => {
               <p className="text-gray-400 mb-6 max-w-md mx-auto">
                 There are currently no active loan applications seeking funding. Please check back later for new opportunities.
               </p>
-            </motion.div>
+            </Motion.div>
           )}
         </div>
 
         {/* Information Section */}
-        <motion.div
+        <Motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.2 }}
@@ -345,8 +336,8 @@ const InvestmentOpportunities = () => {
               <p className="text-gray-400 text-sm">Help others access liquidity while maintaining their crypto holdings.</p>
             </div>
           </div>
-        </motion.div>
-      </motion.div>
+        </Motion.div>
+      </Motion.div>
     </div>
   );
 };
