@@ -25,10 +25,11 @@ A decentralized lending platform that allows users to borrow Bitcoin using gold 
 
 ## Prerequisites
 
-- Node.js (v14 or higher)
+- Node.js (v22 or higher)
 - MongoDB
 - Rust (for EMI calculator module)
 - Clarinet (for Clarity smart contract development)
+- Docker (for running Clarinet Devnet)
 - API Keys:
   - CoinMarketCap API key
   - Metal Price API key
@@ -37,7 +38,7 @@ A decentralized lending platform that allows users to borrow Bitcoin using gold 
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/bitcoin-loan-bank.git
+git clone https://github.com/jayeshy14/bitcoin-loan-bank.git
 cd bitcoin-loan-bank
 ```
 
@@ -66,24 +67,31 @@ METAL_PRICE_API_KEY=your_metal_price_api_key
 4. Set up the smart contract:
 ```bash
 cd contracts
+clarinet devnet start
+```
+
+```bash
 clarinet deploy
 ```
+
+```bash
+node scripts/token-setup.js
 
 ## Running the Application
 
 1. Start the backend server:
 ```bash
 cd backend
-npm start
+npm run dev
 ```
 
 2. Start the frontend development server:
 ```bash
 cd frontend
-npm start
+npm run dev
 ```
 
-3. Access the application at `http://localhost:3000`
+3. Access the application at `http://localhost:5173`
 
 ## Smart Contract Functions
 
