@@ -1,6 +1,33 @@
 # Bitcoin Loan Bank
 
-A decentralized lending platform that allows users to borrow Bitcoin using gold and property as collateral. Built with Clarity smart contracts on the Stacks blockchain.
+Overview
+Our decentralized P2P lending platform allows users to borrow Bitcoin by using gold or property as collateral. The platform is built on the Stacks blockchain using Clarity smart contracts, ensuring transparency, security, and decentralization.
+
+Repayment Mechanism
+To mitigate Bitcoin's price volatility, our repayment system employs a risk-adjusted model that splits the loan into fixed and variable BTC portions based on a risk percentage (α).
+
+Loan Structure & Interest Calculation
+The borrower receives a BTC loan, and its USD equivalent is determined at issuance.
+Interest is compounded monthly over the loan period.
+
+Risk-Adjusted Repayment (α-Split Model)
+
+The repayment amount is divided into:
+
+Fixed BTC Portion (α% of the loan in USD)
+This portion is locked in BTC at the original BTC/USD price.
+Interest is applied in BTC terms, keeping the borrower’s obligation stable.
+Variable BTC Portion ((1-α)% of the loan in USD)
+This portion accrues interest in USD terms and is converted to BTC at the repayment-time BTC/USD rate.
+
+Advantages of This Model
+✅ Protects lenders from BTC price drops by maintaining a USD-pegged portion.
+✅ Gives borrowers stability with a fixed BTC obligation while allowing them to benefit from BTC price appreciation.
+✅ Ensures fair interest application on both fixed and variable portions.
+
+This approach creates a balanced and secure lending system, making Bitcoin-backed loans more practical and sustainable. 🚀
+
+
 
 ## Features
 
