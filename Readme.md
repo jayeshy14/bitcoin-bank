@@ -1,7 +1,7 @@
 # Bitcoin Loan Bank
 
 ## Overview
-Our decentralized P2P lending platform allows users to borrow Bitcoin by using gold or property as collateral. The platform is built on the Stacks blockchain using Clarity smart contracts, ensuring transparency, security, and decentralization.
+Our centralized P2P lending platform allows users to borrow Bitcoin by using gold or property as collateral. The platform is built on the Stacks blockchain using Clarity smart contracts, ensuring transparency and security
 
 ## Repayment Mechanism
 To mitigate Bitcoin's price volatility, our repayment system employs a risk-adjusted model that splits the loan into fixed and variable BTC portions based on a risk percentage (α).
